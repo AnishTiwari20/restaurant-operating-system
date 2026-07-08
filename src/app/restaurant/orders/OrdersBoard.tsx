@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Check, Clock, User, Phone, Bell, Volume2, VolumeX, ShieldAlert } from 'lucide-react';
+import { Play, Check, Clock, User, Phone, Bell, Volume2, VolumeX, ShieldAlert, Search, X } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -35,6 +35,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
   const [filter, setFilter] = useState<'active' | 'received' | 'preparing' | 'served'>('active');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Use ref to keep track of known order IDs to detect new arrivals
   const knownOrderIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
@@ -166,6 +167,39 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
     return true;
   });
 
+  // Search logic
+  const searchedOrders = filteredOrders.filter((order) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase().trim();
+
+    // Check order fields
+    const matchesName = order.customerName.toLowerCase().includes(query);
+    const matchesMobile = order.customerMobile.toLowerCase().includes(query);
+    const matchesOrderNo = `#${order.orderNumber}`.includes(query) || order.orderNumber.toString() === query;
+    const matchesTable = `table ${order.tableNumber}`.toLowerCase().includes(query) || order.tableNumber.toLowerCase() === query;
+    
+    // Check price/amount
+    const matchesAmount = order.totalAmount.toString().includes(query) || formatPrice(order.totalAmount).toLowerCase().includes(query);
+
+    // Check items inside the order
+    const matchesItems = order.items.some((item) => item.name.toLowerCase().includes(query));
+
+    // Check date
+    const formattedDate = new Date(order.createdAt)
+      .toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      .toLowerCase();
+    const matchesDate = formattedDate.includes(query);
+
+    return matchesName || matchesMobile || matchesOrderNo || matchesTable || matchesAmount || matchesItems || matchesDate;
+  });
+
   const getElapsedTime = (isoString: string) => {
     const diffMs = new Date().getTime() - new Date(isoString).getTime();
     const diffMins = Math.floor(diffMs / 60000);
@@ -205,6 +239,28 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
             Test Sound
           </button>
         </div>
+      </div>
+
+      {/* Search Input Bar */}
+      <div className="relative max-w-md w-full">
+        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <Search size={16} />
+        </span>
+        <input
+          type="text"
+          placeholder="Search by customer name, VPA, table #, order #, amount, dish..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-2xl pl-10 pr-10 py-3.5 text-xs outline-none transition-all shadow-sm"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700"
+          >
+            <X size={15} />
+          </button>
+        )}
       </div>
 
       {/* Filter Tabs */}
@@ -253,13 +309,13 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
 
       {/* Grid List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredOrders.length === 0 ? (
+        {searchedOrders.length === 0 ? (
           <div className="md:col-span-2 lg:col-span-3 text-center py-16 bg-white border border-slate-200 border-dashed rounded-3xl p-6">
             <span className="text-slate-400 block mb-2 font-bold">No orders found.</span>
-            <span className="text-slate-500 text-xs">Orders matching your filters will show up here.</span>
+            <span className="text-slate-500 text-xs">Orders matching your search or filters will show up here.</span>
           </div>
         ) : (
-          filteredOrders.map((order) => (
+          searchedOrders.map((order) => (
             <div
               key={order.id}
               className={`bg-white border rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-6 transition-all duration-350 ${
