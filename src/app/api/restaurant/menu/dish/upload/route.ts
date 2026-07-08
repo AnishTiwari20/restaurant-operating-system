@@ -1,6 +1,5 @@
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -22,23 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'File size must be under 5MB.' }, { status: 400 });
     }
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    // Generate unique name
+    // Upload file directly to Vercel Blob with public read permissions
     const timestamp = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${timestamp}_${safeName}`;
 
-    // Write file to public/uploads
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filePath = path.join(uploadDir, filename);
-    await fs.writeFile(filePath, buffer);
+    const blob = await put(filename, file, {
+      access: 'public',
+    });
 
     return NextResponse.json({
-      imageUrl: `/uploads/${filename}`,
+      imageUrl: blob.url,
     });
   } catch (error: any) {
     console.error('Upload Error:', error);
