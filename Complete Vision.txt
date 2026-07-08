@@ -1,0 +1,392 @@
+# Product Requirements Document (PRD)
+
+## Project Name
+
+RestaurantOS
+
+## Vision
+
+I want to build a cloud-based SaaS platform for restaurants. The goal is to create one application that can be used by thousands of restaurants instead of developing custom software for each one.
+
+Every restaurant will have its own account, menu, orders, customers, tables, analytics, and settings, while all restaurants use the same underlying platform (multi-tenant architecture).
+
+The software should be modern, responsive, secure, and easy enough for a restaurant owner with minimal technical knowledge to use.
+
+---
+
+# Users
+
+There are five types of users.
+
+### 1. Customer
+
+A customer visits the restaurant, sits at a table, scans the QR code, views the menu, places an order, pays (or selects pay later if enabled), tracks order status, and gives feedback.
+
+---
+
+### 2. Restaurant Owner
+
+The owner manages the restaurant.
+
+The owner can:
+
+* Edit menu
+* Add categories
+* Upload food images
+* Change prices
+* Mark dishes unavailable
+* View live orders
+* Manage tables
+* Manage staff
+* View analytics
+* Configure taxes
+* Configure payment methods
+* View reports
+* Manage coupons and offers
+
+---
+
+### 3. Kitchen Staff
+
+Kitchen staff only see incoming orders.
+
+They should not see financial information.
+
+They can update order status:
+
+Received
+
+↓
+
+Preparing
+
+↓
+
+Ready
+
+---
+
+### 4. Waiter
+
+Waiters can:
+
+* View tables
+* Check order status
+* Mark food served
+* Place manual orders if needed
+* Collect cash payments if enabled
+
+---
+
+### 5. Super Admin (Platform Owner)
+
+This is me.
+
+I manage every restaurant on the platform.
+
+I can:
+
+* Create restaurant accounts
+* Suspend restaurants
+* View subscription status
+* Manage pricing plans
+* View platform analytics
+* Manage support tickets
+* Send announcements
+
+---
+
+# Customer Flow
+
+1. Customer enters restaurant.
+2. Customer sits at Table 5.
+3. Customer scans QR code.
+4. Menu opens in browser (no app installation).
+5. Customer browses menu.
+6. Customer adds items to cart.
+7. Customer customizes food (extra cheese, less spicy, etc.).
+8. Customer checks out.
+9. Payment is completed or payment method selected.
+10. Order immediately appears in restaurant dashboard.
+11. Kitchen receives the order.
+12. Kitchen updates status.
+13. Waiter serves food.
+14. Customer leaves feedback.
+
+---
+
+# Restaurant Owner Flow
+
+Owner logs in.
+
+Dashboard shows:
+
+* Today's sales
+* Active orders
+* Completed orders
+* Pending payments
+* Most popular dishes
+* Revenue graph
+* Peak business hours
+* Customer statistics
+
+Owner can edit every part of the restaurant.
+
+Changes should immediately appear to customers.
+
+---
+
+# Menu Management
+
+Owner can:
+
+* Add food item
+* Delete food item
+* Edit food item
+* Upload image
+* Set price
+* Add description
+* Add category
+* Add GST
+* Add preparation time
+* Mark unavailable
+* Add variants
+* Add customization options
+
+---
+
+# Order Management
+
+Every order should have:
+
+Order ID
+
+Restaurant ID
+
+Table Number
+
+Customer Name (optional)
+
+Items
+
+Quantity
+
+Customization
+
+Special Instructions
+
+Payment Status
+
+Order Status
+
+Timestamp
+
+Estimated Preparation Time
+
+---
+
+# Order Status
+
+Pending
+
+↓
+
+Accepted
+
+↓
+
+Preparing
+
+↓
+
+Ready
+
+↓
+
+Served
+
+↓
+
+Completed
+
+Optional:
+
+Cancelled
+
+Refunded
+
+---
+
+# Table Management
+
+Restaurant owner should be able to:
+
+* Add tables
+* Remove tables
+* Rename tables
+* Generate QR code for every table
+* Print QR codes
+* Track occupied tables
+
+---
+
+# Payments
+
+Support:
+
+* UPI
+* Credit/Debit Card
+* Net Banking
+* Wallet
+* Cash
+* Pay at Counter
+
+Every payment should generate an invoice.
+
+---
+
+# Analytics
+
+Restaurant owner should see:
+
+Revenue
+
+Daily Orders
+
+Monthly Orders
+
+Average Order Value
+
+Peak Hours
+
+Best Selling Items
+
+Least Selling Items
+
+Returning Customers
+
+Payment Method Distribution
+
+Sales Trends
+
+---
+
+# Notifications
+
+Customer notifications:
+
+Order Accepted
+
+Preparing
+
+Ready
+
+Payment Success
+
+Restaurant notifications:
+
+New Order
+
+Payment Received
+
+Low Inventory (future)
+
+---
+
+# Subscription Model
+
+Restaurants subscribe monthly.
+
+Plans:
+
+Starter
+
+Professional
+
+Enterprise
+
+The platform owner controls subscriptions.
+
+---
+
+# Technical Requirements
+
+Architecture:
+
+Multi-tenant SaaS
+
+Each restaurant has completely isolated data.
+
+The application should be scalable to thousands of restaurants.
+
+---
+
+# Technology Stack
+
+Frontend:
+
+Next.js
+React
+Tailwind CSS
+
+Backend:
+
+Node.js
+PostgreSQL
+Prisma ORM
+
+Authentication:
+
+Role-based authentication
+
+Storage:
+
+Cloud storage for food images
+
+Hosting:
+
+Cloud deployment
+
+Payments:
+
+Payment gateway integration
+
+---
+
+# Non-Functional Requirements
+
+* Mobile-first responsive design
+* Fast loading
+* Secure authentication
+* Data isolation between restaurants
+* Automatic backups
+* Error logging
+* Audit logs
+* Scalable architecture
+* Clean, modular code
+* Easy future feature additions
+
+---
+
+# Future Features
+
+* Inventory Management
+* Employee Attendance
+* Payroll
+* Table Reservation
+* AI Sales Forecasting
+* Loyalty Program
+* Membership System
+* Customer Rewards
+* Kitchen Display App
+* Waiter Mobile App
+* WhatsApp Notifications
+* AI Chat Assistant
+* Voice Ordering
+* Multi-language Support
+
+---
+
+# Goal
+
+The objective is to build software that becomes the operating system for independent restaurants. QR ordering is only the starting point. Over time, the platform should evolve into a complete restaurant management ecosystem covering ordering, payments, kitchen operations, analytics, customer engagement, and business insights, while remaining simple enough for small and medium-sized restaurants to adopt.

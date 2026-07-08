@@ -1,0 +1,144 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User representation for platform admin and restaurant owners/staff
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  role         String      // "SUPER_ADMIN" | "RESTAURANT_OWNER" | "RESTAURANT_STAFF"
+  restaurantId String?     // Nullable for Super Admins
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+// Restaurant tenant details
+model Restaurant {
+  id           String              @id @default(uuid())
+  slug         String              @unique // Unique URL slug (e.g. "cafe-delight")
+  name         String
+  logoUrl      String?
+  address      String
+  phone        String
+  gstNumber    String?
+  businessHrs  String?             // e.g., "09:00 - 22:00"
+  currency     String              @default("INR") // e.g. "INR", "USD"
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  
+  // Relations
+  users        User[]
+  tables       Table[]
+  categories   MenuCategory[]
+  menuItems    MenuItem[]
+  orders       Order[]
+  settings     RestaurantSettings?
+}
+
+// Restaurant settings (extensions)
+model RestaurantSettings {
+  id             String     @id @default(uuid())
+  restaurantId   String     @unique
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  paymentMethods String     // Comma separated e.g. "UPI,CARDS,NETBANKING,WALLETS"
+  taxPercentage  Float      @default(5.0) // GST/Taxes
+}
+
+// Table details
+model Table {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  number       String     // Table label/number (e.g., "12")
+  qrCodeUrl    String?    // Cached link to QR image
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  orders       Order[]
+
+  @@unique([restaurantId, number])
+}
+
+// Menu Categories
+model MenuCategory {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  sortOrder    Int        @default(0)
+  menuItems    MenuItem[]
+
+  @@unique([restaurantId, name])
+}
+
+// Menu Items / Dishes
+model MenuItem {
+  id           String       @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  price        Float
+  imageUrl     String?
+  isAvailable  Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  orderItems   OrderItem[]
+}
+
+// Customer Orders
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    Int         // Auto-incremented relative to the restaurant
+  restaurantId   String
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tableId        String
+  table          Table       @relation(fields: [tableId], references: [id])
+  customerName   String
+  customerMobile String
+  status         String      @default("RECEIVED") // "RECEIVED" | "PREPARING" | "SERVED"
+  paymentStatus  String      @default("PENDING")  // "PENDING" | "PAID" | "FAILED"
+  paymentMethod  String?
+  taxAmount      Float
+  totalAmount    Float       // Grand total including tax
+  assignedWaiter String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+  payments       Payment[]
+}
+
+// Order Items
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  name       String   // Cached dish name (to prevent price/name changes affecting past orders)
+  price      Float    // Cached price at time of order
+  quantity   Int
+}
+
+// Payments details
+model Payment {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactionId   String   @unique
+  amount          Float
+  paymentMethod   String
+  status          String   // "SUCCESS" | "FAILED"
+  gatewayResponse String?  // JSON details/mock payload
+  timestamp       DateTime @default(now())
+}

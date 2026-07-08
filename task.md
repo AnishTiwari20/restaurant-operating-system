@@ -1,0 +1,26 @@
+# Tasks
+
+- [/] Transition to Light Theme (White & Cyan)
+  - [ ] Update `src/app/globals.css` base colors
+  - [ ] Refactor Public Landing & Auth pages
+    - [ ] `src/app/page.tsx`
+    - [ ] `src/app/login/page.tsx`
+  - [ ] Refactor Platform Admin Panel
+    - [ ] `src/app/admin/layout.tsx`
+    - [ ] `src/app/admin/dashboard/page.tsx`
+    - [ ] `src/app/admin/restaurants/RestaurantsManager.tsx`
+  - [ ] Refactor Restaurant Merchant Panel
+    - [ ] `src/app/restaurant/layout.tsx`
+    - [ ] `src/app/restaurant/dashboard/page.tsx`
+    - [ ] `src/app/restaurant/orders/OrdersBoard.tsx`
+    - [ ] `src/app/restaurant/menu/MenuEditor.tsx`
+    - [ ] `src/app/restaurant/tables/TablesManager.tsx`
+    - [ ] `src/app/restaurant/settings/SettingsForm.tsx`
+  - [ ] Refactor Customer Mobile Flow
+    - [ ] `src/app/r/[restaurantSlug]/t/[tableId]/page.tsx`
+    - [ ] `src/app/r/[restaurantSlug]/t/[tableId]/CustomerEntryForm.tsx`
+    - [ ] `src/app/r/[restaurantSlug]/menu/MenuBrowser.tsx`
+    - [ ] `src/app/r/[restaurantSlug]/checkout/CheckoutPageClient.tsx`
+    - [ ] `src/app/r/[restaurantSlug]/payment/page.tsx`
+    - [ ] `src/app/r/[restaurantSlug]/order/[orderId]/OrderTrackingClient.tsx`
+  - [ ] Verify build compilation
