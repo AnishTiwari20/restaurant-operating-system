@@ -16,11 +16,30 @@ export async function POST(req: Request) {
       amount,
       taxAmount,
       gatewayResponse,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
     } = body;
 
     // 1. Validations
     if (!restaurantSlug || !tableId || !customerName || !cartItems || cartItems.length === 0) {
       return NextResponse.json({ message: 'Missing required order fields.' }, { status: 400 });
+    }
+
+    // Cryptographic signature verification for Razorpay payments
+    if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
+      const crypto = require('crypto');
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+        .digest('hex');
+
+      if (expectedSignature !== razorpaySignature) {
+        return NextResponse.json(
+          { message: 'Payment verification failed. Invalid signature.' },
+          { status: 400 }
+        );
+      }
     }
 
     // 2. Fetch Restaurant

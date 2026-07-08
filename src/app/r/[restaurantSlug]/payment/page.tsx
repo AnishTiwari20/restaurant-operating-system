@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, use } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ShieldCheck, Loader2, CheckCircle2, XCircle, CreditCard, Landmark, Wallet, QrCode } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShieldCheck, Loader2, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { CartItem } from '../menu/MenuBrowser';
+import Script from 'next/script';
 
 interface Props {
   params: Promise<{
@@ -13,9 +14,7 @@ interface Props {
 
 export default function PaymentSimulationPage({ params }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { restaurantSlug } = use(params);
-  const method = searchParams.get('method') || 'CARDS';
 
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -27,15 +26,6 @@ export default function PaymentSimulationPage({ params }: Props) {
   const [errorMsg, setErrorMsg] = useState('');
   const [currency, setCurrency] = useState('INR');
   const [taxPercentage, setTaxPercentage] = useState(5.0);
-
-  // Form Inputs
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [upiId, setUpiId] = useState('');
-  const [selectedBank, setSelectedBank] = useState('');
-  const [selectedWallet, setSelectedWallet] = useState('');
 
   // Load customer cookies and cart data
   useEffect(() => {
@@ -58,7 +48,6 @@ export default function PaymentSimulationPage({ params }: Props) {
     setCustomerMobile(mobile);
     setTableId(tId);
     setTableNumber(tNum);
-    setCardName(name);
 
     try {
       const storedCart = localStorage.getItem(`cart_${restaurantSlug}`);
@@ -88,124 +77,94 @@ export default function PaymentSimulationPage({ params }: Props) {
     }).format(price);
   };
 
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 16);
-    const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
-    setCardNumber(formatted);
-  };
-
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-    if (value.length >= 2) {
-      setCardExpiry(`${value.slice(0, 2)}/${value.slice(2)}`);
-    } else {
-      setCardExpiry(value);
-    }
-  };
-
-  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 3);
-    setCardCvv(value);
-  };
-
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-
-    // Input Validations
-    if (method.toUpperCase() === 'CARDS') {
-      const cleanCard = cardNumber.replace(/\s/g, '');
-      if (cleanCard.length !== 16) {
-        setErrorMsg('Invalid card number. Must be 16 digits.');
-        return;
-      }
-      if (!cardExpiry.includes('/') || cardExpiry.length !== 5) {
-        setErrorMsg('Invalid expiry date. Format must be MM/YY.');
-        return;
-      }
-      if (cardCvv.length !== 3) {
-        setErrorMsg('Invalid security code (CVV). Must be 3 digits.');
-        return;
-      }
-      if (!cardName.trim()) {
-        setErrorMsg('Cardholder name is required.');
-        return;
-      }
-    } else if (method.toUpperCase() === 'UPI') {
-      if (!upiId.includes('@') || upiId.trim().length < 5) {
-        setErrorMsg('Please enter a valid UPI ID (e.g. user@bank).');
-        return;
-      }
-    } else if (method.toUpperCase() === 'NETBANKING') {
-      if (!selectedBank) {
-        setErrorMsg('Please select a bank.');
-        return;
-      }
-    } else if (method.toUpperCase() === 'WALLETS') {
-      if (!selectedWallet) {
-        setErrorMsg('Please select a wallet provider.');
-        return;
-      }
-    }
-
     setPaymentStatus('processing');
     setLoading(true);
 
-    const txnId = `TXN-${Math.floor(100000000 + Math.random() * 900000000)}`;
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const shouldFail = 
-      (method.toUpperCase() === 'CARDS' && cardNumber.endsWith('0000')) ||
-      (method.toUpperCase() === 'UPI' && upiId.startsWith('fail@'));
-
-    if (shouldFail) {
-      setPaymentStatus('failed');
-      setErrorMsg('Transaction declined by issuing bank. Please verify details or try another card.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch('/api/order/create', {
+      // 1. Create Razorpay order session on the server
+      const resOrder = await fetch('/api/payment/razorpay/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          restaurantSlug,
-          tableId,
-          customerName,
-          customerMobile,
-          cartItems: cart,
-          paymentMethod: method,
-          transactionId: txnId,
-          amount: grandTotal,
-          taxAmount,
-          gatewayResponse: JSON.stringify({
-            status: 'SUCCESS',
-            gateway: 'RestaurantOS Gateway',
-            method: method,
-            reference: txnId,
-          }),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: grandTotal }),
       });
 
-      const data = await response.json();
+      const orderData = await resOrder.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to place order.');
+      if (!resOrder.ok) {
+        throw new Error(orderData.message || 'Failed to create payment session.');
       }
 
-      setPaymentStatus('success');
-      localStorage.removeItem(`cart_${restaurantSlug}`);
+      // 2. Configure Razorpay checkout options
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'RestaurantOS',
+        description: `Table ${tableNumber} Order Payment`,
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          try {
+            setPaymentStatus('processing');
+            // Submit order details with cryptographic proof
+            const resCreate = await fetch('/api/order/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                restaurantSlug,
+                tableId,
+                customerName,
+                customerMobile,
+                cartItems: cart,
+                paymentMethod: 'Razorpay UPI/Card',
+                amount: grandTotal,
+                taxAmount,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
 
-      setTimeout(() => {
-        router.push(`/r/${restaurantSlug}/order/${data.orderId}`);
-      }, 1500);
+            const createData = await resCreate.json();
+
+            if (!resCreate.ok) {
+              throw new Error(createData.message || 'Failed to place order.');
+            }
+
+            setPaymentStatus('success');
+            localStorage.removeItem(`cart_${restaurantSlug}`);
+
+            setTimeout(() => {
+              router.push(`/r/${restaurantSlug}/order/${createData.orderId}`);
+            }, 1500);
+          } catch (err: any) {
+            setPaymentStatus('failed');
+            setErrorMsg(err.message || 'Payment capture failed.');
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: customerName,
+          contact: customerMobile,
+        },
+        theme: {
+          color: '#06b6d4', // Cyan theme accent
+        },
+        modal: {
+          ondismiss: function () {
+            setPaymentStatus('idle');
+            setLoading(false);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (err: any) {
       setPaymentStatus('failed');
-      setErrorMsg(err.message || 'Payment system error. Please try again.');
+      setErrorMsg(err.message || 'Failed to initialize payment.');
       setLoading(false);
     }
   };
@@ -213,24 +172,27 @@ export default function PaymentSimulationPage({ params }: Props) {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800">
-        <p className="text-slate-400 text-xs font-bold">Redirecting to checkout...</p>
+        <p className="text-slate-400 text-xs font-bold animate-pulse">Redirecting to checkout...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-center items-center p-4">
+      {/* Load Razorpay SDK Script */}
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+
       {/* Background Radial Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="max-w-md w-full bg-white border border-slate-200/85 rounded-3xl p-8 shadow-xl relative overflow-hidden">
+      <div className="max-w-md w-full bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xl relative overflow-hidden z-10">
         {/* Top visual accent */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 to-teal-500" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-cyan-500" />
 
         {/* Secure badge */}
-        <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-6 uppercase text-[9px] font-black tracking-widest bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-150 w-fit mx-auto">
+        <div className="flex items-center justify-center gap-1.5 text-slate-450 mb-6 uppercase text-[9px] font-black tracking-widest bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-150 w-fit mx-auto">
           <ShieldCheck size={12} className="text-cyan-500" />
-          <span>Secure Payments Portal</span>
+          <span>Secure Razorpay Portal</span>
         </div>
 
         {/* Payment Processing/Success Screens */}
@@ -239,7 +201,7 @@ export default function PaymentSimulationPage({ params }: Props) {
             <Loader2 className="animate-spin text-cyan-500 mx-auto" size={48} />
             <h2 className="text-lg font-extrabold text-slate-800 font-black">Processing Payment</h2>
             <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-              We are securely verifying your payment details with the gateway. Please do not refresh this page.
+              Do not refresh this page. We are verifying the transaction with Razorpay.
             </p>
           </div>
         )}
@@ -254,16 +216,16 @@ export default function PaymentSimulationPage({ params }: Props) {
           </div>
         )}
 
-        {/* Idle Mode: Payment Forms */}
+        {/* Idle Mode: Order Summary & Checkout Button */}
         {paymentStatus === 'idle' && (
-          <form onSubmit={handlePaymentSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div className="text-center space-y-1">
               <span className="text-xs text-slate-450 uppercase tracking-widest font-bold block">
                 Total Amount Due
               </span>
               <h2 className="text-3xl font-black text-slate-900">{formatPrice(grandTotal)}</h2>
-              <p className="text-[10px] text-slate-400 font-medium">
-                Table {tableNumber} • Order Setup
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                Table {tableNumber} • Cafe Delight
               </p>
             </div>
 
@@ -277,159 +239,43 @@ export default function PaymentSimulationPage({ params }: Props) {
               </div>
             )}
 
-            {/* Dynamic Payment Details Input */}
-            {method.toUpperCase() === 'CARDS' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  <CreditCard size={14} className="text-cyan-500" />
-                  <span>Card Payment Details</span>
-                </div>
-
-                <div>
-                  <label htmlFor="card-holder" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
-                    Cardholder Name
-                  </label>
-                  <input
-                    id="card-holder"
-                    type="text"
-                    required
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="card-number" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
-                    Card Number
-                  </label>
-                  <input
-                    id="card-number"
-                    type="text"
-                    required
-                    value={cardNumber}
-                    onChange={handleCardNumberChange}
-                    placeholder="4111 2222 3333 4444"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="card-expiry" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
-                      Expiry Date
-                    </label>
-                    <input
-                      id="card-expiry"
-                      type="text"
-                      required
-                      value={cardExpiry}
-                      onChange={handleExpiryChange}
-                      placeholder="MM/YY"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="card-cvv" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
-                      CVV / Code
-                    </label>
-                    <input
-                      id="card-cvv"
-                      type="password"
-                      required
-                      value={cardCvv}
-                      onChange={handleCvvChange}
-                      placeholder="***"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
-                    />
-                  </div>
-                </div>
+            {/* Premium Bill Breakdown */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-2.5">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                Receipt Breakdown
+              </span>
+              
+              <div className="flex justify-between items-center text-xs text-slate-600">
+                <span>Items Subtotal</span>
+                <span className="font-semibold">{formatPrice(subtotal)}</span>
               </div>
-            )}
 
-            {method.toUpperCase() === 'UPI' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  <QrCode size={14} className="text-cyan-500" />
-                  <span>UPI Payment Details</span>
-                </div>
-
-                <div>
-                  <label htmlFor="upi-id" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
-                    Enter UPI ID / VPA
-                  </label>
-                  <input
-                    id="upi-id"
-                    type="text"
-                    required
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    placeholder="username@okaxis"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-3 text-xs outline-none transition-colors"
-                  />
-                </div>
+              <div className="flex justify-between items-center text-xs text-slate-600">
+                <span>GST / Taxes ({taxPercentage}%)</span>
+                <span className="font-semibold">{formatPrice(taxAmount)}</span>
               </div>
-            )}
 
-            {method.toUpperCase() === 'NETBANKING' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  <Landmark size={14} className="text-cyan-500" />
-                  <span>Select Bank</span>
-                </div>
-
-                <div>
-                  <select
-                    required
-                    value={selectedBank}
-                    onChange={(e) => setSelectedBank(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 rounded-xl px-3 py-3 text-xs outline-none transition-colors"
-                  >
-                    <option value="">-- Choose Bank --</option>
-                    <option value="sbi">State Bank of India</option>
-                    <option value="hdfc">HDFC Bank</option>
-                    <option value="icici">ICICI Bank</option>
-                    <option value="axis">Axis Bank</option>
-                  </select>
-                </div>
+              <div className="border-t border-slate-200/60 pt-2 flex justify-between items-center text-xs font-bold text-slate-900">
+                <span>Grand Total</span>
+                <span className="text-cyan-600 font-black">{formatPrice(grandTotal)}</span>
               </div>
-            )}
+            </div>
 
-            {method.toUpperCase() === 'WALLETS' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  <Wallet size={14} className="text-cyan-500" />
-                  <span>Select Mobile Wallet</span>
-                </div>
+            {/* Security Guarantee Text */}
+            <p className="text-[10px] text-slate-450 leading-relaxed text-center font-light">
+              By clicking below, a secure Razorpay drawer will open to complete payment via UPI (GPay, PhonePe, Paytm), Netbanking, or Cards.
+            </p>
 
-                <div>
-                  <select
-                    required
-                    value={selectedWallet}
-                    onChange={(e) => setSelectedWallet(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 rounded-xl px-3 py-3 text-xs outline-none transition-colors"
-                  >
-                    <option value="">-- Choose Wallet --</option>
-                    <option value="gpay">Google Pay</option>
-                    <option value="phonepe">PhonePe</option>
-                    <option value="paytm">Paytm</option>
-                    <option value="amazon">Amazon Pay</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Submit Action */}
+            {/* Payment Button */}
             <button
-              type="submit"
+              onClick={handlePaymentSubmit}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 active:scale-[0.98] text-white font-extrabold py-4.5 px-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 active:scale-[0.98] text-white font-extrabold py-4 px-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              Pay Securely {formatPrice(grandTotal)}
+              <span>Proceed to Pay</span>
+              <ChevronRight size={14} />
             </button>
-          </form>
+          </div>
         )}
 
         {/* Payment Fail Retries Screen */}
@@ -438,10 +284,11 @@ export default function PaymentSimulationPage({ params }: Props) {
             <div className="text-center py-2 space-y-3">
               <XCircle className="text-red-500 mx-auto" size={48} />
               <h2 className="text-lg font-extrabold text-slate-800 font-black">Transaction Failed</h2>
-              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-xs text-red-650 bg-red-50 border border-red-100 rounded-xl p-3">
                 {errorMsg}
               </p>
             </div>
+            
             <div className="space-y-3">
               <button
                 type="button"
