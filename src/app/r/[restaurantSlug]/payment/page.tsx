@@ -58,7 +58,7 @@ export default function PaymentSimulationPage({ params }: Props) {
     setCustomerMobile(mobile);
     setTableId(tId);
     setTableNumber(tNum);
-    setCardName(name); // Autofill card name with customer name
+    setCardName(name);
 
     try {
       const storedCart = localStorage.getItem(`cart_${restaurantSlug}`);
@@ -88,7 +88,6 @@ export default function PaymentSimulationPage({ params }: Props) {
     }).format(price);
   };
 
-  // Helper formats
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 16);
     const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
@@ -154,10 +153,8 @@ export default function PaymentSimulationPage({ params }: Props) {
 
     const txnId = `TXN-${Math.floor(100000000 + Math.random() * 900000000)}`;
 
-    // Simulate gateway delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Simple sandbox test: Card ending in "0000" or UPI starting with "fail@" simulates failures
     const shouldFail = 
       (method.toUpperCase() === 'CARDS' && cardNumber.endsWith('0000')) ||
       (method.toUpperCase() === 'UPI' && upiId.startsWith('fail@'));
@@ -215,33 +212,33 @@ export default function PaymentSimulationPage({ params }: Props) {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
-        <p className="text-zinc-500">Redirecting to checkout...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800">
+        <p className="text-slate-400 text-xs font-bold">Redirecting to checkout...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-center items-center p-4">
       {/* Background Radial Glow */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.03)_0%,transparent_70%)] pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+      <div className="max-w-md w-full bg-white border border-slate-200/85 rounded-3xl p-8 shadow-xl relative overflow-hidden">
         {/* Top visual accent */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 to-teal-500" />
 
         {/* Secure badge */}
-        <div className="flex items-center justify-center gap-1.5 text-zinc-500 mb-6 uppercase text-[9px] font-black tracking-widest bg-zinc-950 px-3.5 py-1.5 rounded-full border border-zinc-850 w-fit mx-auto">
-          <ShieldCheck size={12} className="text-amber-500" />
+        <div className="flex items-center justify-center gap-1.5 text-slate-400 mb-6 uppercase text-[9px] font-black tracking-widest bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-150 w-fit mx-auto">
+          <ShieldCheck size={12} className="text-cyan-500" />
           <span>Secure Payments Portal</span>
         </div>
 
         {/* Payment Processing/Success Screens */}
         {paymentStatus === 'processing' && (
           <div className="text-center py-8 space-y-4">
-            <Loader2 className="animate-spin text-amber-500 mx-auto" size={48} />
-            <h2 className="text-lg font-extrabold text-zinc-200">Processing Payment</h2>
-            <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
+            <Loader2 className="animate-spin text-cyan-500 mx-auto" size={48} />
+            <h2 className="text-lg font-extrabold text-slate-800 font-black">Processing Payment</h2>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
               We are securely verifying your payment details with the gateway. Please do not refresh this page.
             </p>
           </div>
@@ -250,8 +247,8 @@ export default function PaymentSimulationPage({ params }: Props) {
         {paymentStatus === 'success' && (
           <div className="text-center py-8 space-y-4">
             <CheckCircle2 className="text-emerald-500 mx-auto" size={48} />
-            <h2 className="text-lg font-extrabold text-zinc-200">Transaction Confirmed</h2>
-            <p className="text-xs text-zinc-500">
+            <h2 className="text-lg font-extrabold text-slate-800 font-black">Transaction Confirmed</h2>
+            <p className="text-xs text-slate-500">
               Your order is placed. Transferring to tracking screen...
             </p>
           </div>
@@ -261,20 +258,20 @@ export default function PaymentSimulationPage({ params }: Props) {
         {paymentStatus === 'idle' && (
           <form onSubmit={handlePaymentSubmit} className="space-y-6">
             <div className="text-center space-y-1">
-              <span className="text-xs text-zinc-500 uppercase tracking-widest font-semibold block">
+              <span className="text-xs text-slate-450 uppercase tracking-widest font-bold block">
                 Total Amount Due
               </span>
-              <h2 className="text-3xl font-black text-white">{formatPrice(grandTotal)}</h2>
-              <p className="text-[10px] text-zinc-400">
+              <h2 className="text-3xl font-black text-slate-900">{formatPrice(grandTotal)}</h2>
+              <p className="text-[10px] text-slate-400 font-medium">
                 Table {tableNumber} • Order Setup
               </p>
             </div>
 
-            <div className="border-t border-zinc-800 my-4" />
+            <div className="border-t border-slate-100 my-4" />
 
             {/* Error Message */}
             {errorMsg && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl p-3 flex items-start gap-2">
+              <div className="bg-red-50 border border-red-100 text-red-650 text-xs rounded-xl p-3 flex items-start gap-2">
                 <XCircle size={16} className="shrink-0 mt-0.5" />
                 <span>{errorMsg}</span>
               </div>
@@ -283,13 +280,13 @@ export default function PaymentSimulationPage({ params }: Props) {
             {/* Dynamic Payment Details Input */}
             {method.toUpperCase() === 'CARDS' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  <CreditCard size={14} className="text-amber-500" />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <CreditCard size={14} className="text-cyan-500" />
                   <span>Card Payment Details</span>
                 </div>
 
                 <div>
-                  <label htmlFor="card-holder" className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                  <label htmlFor="card-holder" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
                     Cardholder Name
                   </label>
                   <input
@@ -299,12 +296,12 @@ export default function PaymentSimulationPage({ params }: Props) {
                     value={cardName}
                     onChange={(e) => setCardName(e.target.value)}
                     placeholder="John Doe"
-                    className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-700 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="card-number" className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                  <label htmlFor="card-number" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
                     Card Number
                   </label>
                   <input
@@ -314,13 +311,13 @@ export default function PaymentSimulationPage({ params }: Props) {
                     value={cardNumber}
                     onChange={handleCardNumberChange}
                     placeholder="4111 2222 3333 4444"
-                    className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-700 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="card-expiry" className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                    <label htmlFor="card-expiry" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
                       Expiry Date
                     </label>
                     <input
@@ -330,12 +327,12 @@ export default function PaymentSimulationPage({ params }: Props) {
                       value={cardExpiry}
                       onChange={handleExpiryChange}
                       placeholder="MM/YY"
-                      className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-700 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="card-cvv" className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                    <label htmlFor="card-cvv" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
                       CVV / Code
                     </label>
                     <input
@@ -345,7 +342,7 @@ export default function PaymentSimulationPage({ params }: Props) {
                       value={cardCvv}
                       onChange={handleCvvChange}
                       placeholder="***"
-                      className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-700 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-xs outline-none transition-colors font-mono"
                     />
                   </div>
                 </div>
@@ -354,13 +351,13 @@ export default function PaymentSimulationPage({ params }: Props) {
 
             {method.toUpperCase() === 'UPI' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  <QrCode size={14} className="text-amber-500" />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <QrCode size={14} className="text-cyan-500" />
                   <span>UPI Payment Details</span>
                 </div>
 
                 <div>
-                  <label htmlFor="upi-id" className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                  <label htmlFor="upi-id" className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1.5">
                     Enter UPI ID / VPA
                   </label>
                   <input
@@ -370,7 +367,7 @@ export default function PaymentSimulationPage({ params }: Props) {
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
                     placeholder="username@okaxis"
-                    className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-zinc-700 rounded-xl px-4 py-3 text-xs outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-3 text-xs outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -378,8 +375,8 @@ export default function PaymentSimulationPage({ params }: Props) {
 
             {method.toUpperCase() === 'NETBANKING' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  <Landmark size={14} className="text-amber-500" />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <Landmark size={14} className="text-cyan-500" />
                   <span>Select Bank</span>
                 </div>
 
@@ -388,7 +385,7 @@ export default function PaymentSimulationPage({ params }: Props) {
                     required
                     value={selectedBank}
                     onChange={(e) => setSelectedBank(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white rounded-xl px-3 py-3 text-xs outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 rounded-xl px-3 py-3 text-xs outline-none transition-colors"
                   >
                     <option value="">-- Choose Bank --</option>
                     <option value="sbi">State Bank of India</option>
@@ -402,8 +399,8 @@ export default function PaymentSimulationPage({ params }: Props) {
 
             {method.toUpperCase() === 'WALLETS' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  <Wallet size={14} className="text-amber-500" />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <Wallet size={14} className="text-cyan-500" />
                   <span>Select Mobile Wallet</span>
                 </div>
 
@@ -412,7 +409,7 @@ export default function PaymentSimulationPage({ params }: Props) {
                     required
                     value={selectedWallet}
                     onChange={(e) => setSelectedWallet(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-850 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white rounded-xl px-3 py-3 text-xs outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 rounded-xl px-3 py-3 text-xs outline-none transition-colors"
                   >
                     <option value="">-- Choose Wallet --</option>
                     <option value="gpay">Google Pay</option>
@@ -428,7 +425,7 @@ export default function PaymentSimulationPage({ params }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-zinc-950 font-black py-4.5 px-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 active:scale-[0.98] text-white font-extrabold py-4.5 px-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20 transition-all duration-200 cursor-pointer disabled:opacity-50"
             >
               Pay Securely {formatPrice(grandTotal)}
             </button>
@@ -440,8 +437,8 @@ export default function PaymentSimulationPage({ params }: Props) {
           <div className="space-y-6">
             <div className="text-center py-2 space-y-3">
               <XCircle className="text-red-500 mx-auto" size={48} />
-              <h2 className="text-lg font-extrabold text-zinc-200">Transaction Failed</h2>
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+              <h2 className="text-lg font-extrabold text-slate-800 font-black">Transaction Failed</h2>
+              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">
                 {errorMsg}
               </p>
             </div>
@@ -449,14 +446,14 @@ export default function PaymentSimulationPage({ params }: Props) {
               <button
                 type="button"
                 onClick={() => setPaymentStatus('idle')}
-                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Try Again
               </button>
               <button
                 type="button"
                 onClick={() => router.push(`/r/${restaurantSlug}/checkout`)}
-                className="w-full bg-transparent border border-zinc-800 text-zinc-500 hover:text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                className="w-full bg-transparent border border-slate-200 text-slate-400 hover:text-slate-700 font-bold py-3 px-4 rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Back to Checkout
               </button>
