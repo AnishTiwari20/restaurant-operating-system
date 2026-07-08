@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, ShoppingCart, Plus, Minus, X, Trash2, ArrowRight } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, X, Trash2, ArrowRight, ChevronRight } from 'lucide-react';
 
 interface MenuItemData {
   id: string;
@@ -166,9 +166,17 @@ export default function MenuBrowser({
             </span>
             <h1 className="text-lg font-black tracking-tight text-slate-900">{restaurantName}</h1>
           </div>
-          <div className="text-right">
-            <span className="text-xs text-slate-400 block">Welcome,</span>
-            <span className="text-sm font-bold text-slate-800">{customerName}</span>
+          <div className="text-right flex flex-col items-end">
+            <span className="text-xs text-slate-400 block">
+              Welcome, <span className="font-bold text-slate-800">{customerName}</span>
+            </span>
+            <button
+              onClick={() => router.push(`/r/${restaurantSlug}/my-orders`)}
+              className="mt-1 flex items-center gap-0.5 text-[9px] font-black uppercase text-cyan-600 hover:text-cyan-700 cursor-pointer transition-colors"
+            >
+              <span>My Orders</span>
+              <ChevronRight size={10} className="stroke-[3]" />
+            </button>
           </div>
         </div>
       </header>
