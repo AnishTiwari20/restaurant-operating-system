@@ -316,6 +316,8 @@ export default function MenuBrowser({
                           <img
                             src={item.imageUrl}
                             alt={item.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-20 h-20 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-50"
                           />
                         ) : (
