@@ -12,15 +12,13 @@ import {
   Search,
   X,
   Loader2,
-  TrendingUp,
-  ClipboardList,
-  ChefHat,
   Printer,
   MessageSquare,
   Users,
-  Utensils,
   CheckSquare,
   Square,
+  ChevronDown,
+  ChevronUp,
   AlertCircle
 } from 'lucide-react';
 
@@ -62,6 +60,9 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
   
   // Interactive kitchen checked items state (stores 'orderId-itemId' string)
   const [preparedItems, setPreparedItems] = useState<Set<string>>(new Set());
+
+  // Accordion expanded rows state (stores set of order IDs)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Receipt Modal Order state
   const [receiptModalOrder, setReceiptModalOrder] = useState<OrderData | null>(null);
@@ -123,6 +124,13 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             if (!knownOrderIdsRef.current.has(order.id) && order.status === 'RECEIVED') {
               hasNew = true;
               knownOrderIdsRef.current.add(order.id);
+              
+              // Automatically expand new incoming orders so they are immediately visible
+              setExpandedIds((prev) => {
+                const next = new Set(prev);
+                next.add(order.id);
+                return next;
+              });
             }
           });
 
@@ -175,7 +183,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         body: JSON.stringify({
           orderId,
           paymentStatus: 'PAID',
-          status: 'PREPARING', // Automatically move to preparing (kitchen cooks)
+          status: 'PREPARING',
         }),
       });
 
@@ -259,7 +267,8 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
   };
 
   // Toggle item checklist in kitchen
-  const toggleItemPrepared = (orderId: string, itemId: string) => {
+  const toggleItemPrepared = (orderId: string, itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Avoid triggering row accordion toggle
     const key = `${orderId}-${itemId}`;
     setPreparedItems((prev) => {
       const next = new Set(prev);
@@ -267,6 +276,19 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         next.delete(key);
       } else {
         next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Toggle Row Accordion
+  const toggleRowExpand = (orderId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
       }
       return next;
     });
@@ -295,19 +317,13 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
 
     const query = searchQuery.toLowerCase().trim();
 
-    // Check order fields
     const matchesName = order.customerName.toLowerCase().includes(query);
     const matchesMobile = order.customerMobile.toLowerCase().includes(query);
     const matchesOrderNo = `#${order.orderNumber}`.includes(query) || order.orderNumber.toString() === query;
     const matchesTable = `table ${order.tableNumber}`.toLowerCase().includes(query) || order.tableNumber.toLowerCase() === query;
-    
-    // Check price/amount
     const matchesAmount = order.totalAmount.toString().includes(query) || formatPrice(order.totalAmount).toLowerCase().includes(query);
-
-    // Check items inside the order
     const matchesItems = order.items.some((item) => item.name.toLowerCase().includes(query));
 
-    // Check date
     const formattedDate = new Date(order.createdAt)
       .toLocaleDateString('en-IN', {
         day: 'numeric',
@@ -329,26 +345,18 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
     return `${diffMins}m ago`;
   };
 
-  // Metrics Calculations
-  const totalRevenueToday = orders
-    .filter((o) => o.paymentStatus === 'PAID')
-    .reduce((sum, o) => sum + o.totalAmount, 0);
-
-  const activeKitchenCount = orders.filter((o) => o.status === 'RECEIVED' || o.status === 'PREPARING').length;
-  const uniqueTablesActive = new Set(orders.filter((o) => o.status !== 'SERVED').map((o) => o.tableNumber)).size;
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 text-left">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">Live Orders Board</h1>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">Live Orders Queue</h1>
           <p className="text-slate-500 text-xs mt-1">
-            Track and process customer orders in real-time. Sound alerts will play for new pending items.
+            Manage incoming tables and kitchen preparation. Tap on any order row to expand details.
           </p>
         </div>
 
-        {/* Audio control & quick tester */}
+        {/* Audio control */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -361,73 +369,18 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             <span>{soundEnabled ? 'Alerts On' : 'Alerts Muted'}</span>
           </button>
-
-          <button
-            onClick={playNewOrderSound}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-650 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer"
-          >
-            Test Sound
-          </button>
-        </div>
-      </div>
-
-      {/* METRICS STATS CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100/40">
-            <TrendingUp size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Today's Revenue</span>
-            <span className="text-lg font-black text-slate-950 mt-0.5 block">{formatPrice(totalRevenueToday)}</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-500" />
-          <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl border border-cyan-100/40">
-            <ChefHat size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Kitchen Queue</span>
-            <span className="text-lg font-black text-slate-950 mt-0.5 block">{activeKitchenCount} Orders</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 w-1 bg-amber-500" />
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100/40">
-            <ClipboardList size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Dining Tables</span>
-            <span className="text-lg font-black text-slate-950 mt-0.5 block">{uniqueTablesActive} Active</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 w-1 bg-purple-500" />
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-100/40">
-            <Clock size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Avg. Cook Time</span>
-            <span className="text-lg font-black text-slate-950 mt-0.5 block">12 Minutes</span>
-          </div>
         </div>
       </div>
 
       {/* SEARCH AND FILTERS PANEL */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-        {/* Search Input Bar */}
         <div className="relative w-full">
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             <Search size={16} />
           </span>
           <input
             type="text"
-            placeholder="Search by customer name, VPA, table #, order #, amount, dish..."
+            placeholder="Search by customer name, mobile, table, order #, total amount..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-2xl pl-10 pr-10 py-3.5 text-xs outline-none transition-all"
@@ -452,7 +405,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                 : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
             }`}
           >
-            Active ({orders.filter((o) => o.status === 'RECEIVED' || o.status === 'PREPARING').length})
+            Active Queue ({orders.filter((o) => o.status === 'RECEIVED' || o.status === 'PREPARING').length})
           </button>
           <button
             onClick={() => setFilter('received')}
@@ -487,257 +440,279 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         </div>
       </div>
 
-      {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* LIST VIEW LAYOUT TABLE */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
         {searchedOrders.length === 0 ? (
-          <div className="md:col-span-2 lg:col-span-3 text-center py-16 bg-white border border-slate-200 border-dashed rounded-3xl p-6">
-            <span className="text-slate-400 block mb-2 font-bold">No orders found.</span>
-            <span className="text-slate-500 text-xs">Orders matching your search or filters will show up here.</span>
+          <div className="text-center py-16 text-slate-400 text-xs">
+            No live orders match selected filters.
           </div>
         ) : (
-          searchedOrders.map((order) => {
-            const hasPendingVerification = order.paymentStatus === 'PENDING_VERIFICATION';
-            
-            return (
-              <div
-                key={order.id}
-                className={`bg-white border rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-6 transition-all duration-350 ${
-                  order.status === 'RECEIVED'
-                    ? 'border-red-200 bg-gradient-to-br from-white to-red-50/[0.03]'
-                    : order.status === 'PREPARING'
-                    ? 'border-orange-200 bg-gradient-to-br from-white to-orange-50/[0.03]'
-                    : 'border-slate-200/85 bg-white'
-                }`}
-              >
-                {/* Card Header */}
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-black text-slate-900">Order #{order.orderNumber}</span>
-                      <span className="bg-slate-50 px-2 py-0.5 border border-slate-200 rounded-md text-cyan-600 font-bold text-[10px]">
+          <div className="divide-y divide-slate-100">
+            {searchedOrders.map((order) => {
+              const isExpanded = expandedIds.has(order.id);
+              const hasPendingVerification = order.paymentStatus === 'PENDING_VERIFICATION';
+
+              return (
+                <div
+                  key={order.id}
+                  className={`transition-colors duration-200 ${
+                    isExpanded ? 'bg-slate-50/30' : 'hover:bg-slate-50/20'
+                  }`}
+                >
+                  {/* Row Summary */}
+                  <div
+                    onClick={() => toggleRowExpand(order.id)}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 cursor-pointer text-xs select-none gap-4"
+                  >
+                    {/* Col 1: Order Number / Time */}
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-slate-900 text-sm">#{order.orderNumber}</span>
+                      <span className="text-[10px] text-slate-400 font-bold">{getElapsedTime(order.createdAt)}</span>
+                    </div>
+
+                    {/* Col 2: Table */}
+                    <div className="sm:text-center">
+                      <span className="bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded font-black text-cyan-600 text-[10px]">
                         Table {order.tableNumber}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-bold block mt-1">
-                      {getElapsedTime(order.createdAt)}
-                    </span>
-                  </div>
 
-                  <span
-                    className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
-                      order.status === 'RECEIVED'
-                        ? 'bg-red-50 border-red-100 text-red-700'
-                        : order.status === 'PREPARING'
-                        ? 'bg-orange-50 border-orange-100 text-orange-700'
-                        : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                    }`}
-                  >
-                    {order.status === 'RECEIVED' && 'Pending'}
-                    {order.status === 'PREPARING' && 'Preparing'}
-                    {order.status === 'SERVED' && 'Served'}
-                  </span>
-                </div>
-
-                {/* Progress bar timeline */}
-                {order.status !== 'FAILED' && (
-                  <div className="space-y-1 pt-1">
-                    <div className="flex justify-between text-[8px] text-slate-400 uppercase font-black tracking-wider">
-                      <span>Received</span>
-                      <span>Preparing</span>
-                      <span>Served</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 flex overflow-hidden">
-                      <div className={`h-full transition-all duration-500 ${
-                        order.status === 'RECEIVED' ? 'w-1/3 bg-red-400' :
-                        order.status === 'PREPARING' ? 'w-2/3 bg-orange-400 animate-pulse' :
-                        'w-full bg-emerald-500'
-                      }`} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Verify Manual Payment Block */}
-                {hasPendingVerification && (
-                  <div className="bg-amber-50 border border-amber-250 rounded-2xl p-4 text-xs text-amber-800 space-y-2.5">
-                    <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-800">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                    {/* Col 3: Customer Details */}
+                    <div className="text-slate-700 font-bold min-w-[130px]">
+                      <span>{order.customerName}</span>
+                      <span className="text-[9px] text-slate-450 block font-mono font-medium mt-0.5">
+                        {order.customerMobile}
                       </span>
-                      <span>Verify payment</span>
                     </div>
-                    <p className="text-[10px] text-amber-700 leading-relaxed font-light">
-                      Customer selected **{order.paymentMethod}** and clicked confirm. Please verify receipt of **{formatPrice(order.totalAmount)}** before clicking approve.
-                    </p>
-                    
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => approvePayment(order.id)}
-                        disabled={updatingId === order.id}
-                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
-                      >
-                        {updatingId === order.id ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          <Play size={10} className="stroke-[2.5]" />
-                        )}
-                        <span>Approve & Cook</span>
-                      </button>
-                      <button
-                        onClick={() => rejectOrder(order.id)}
-                        disabled={updatingId === order.id}
-                        className="bg-white hover:bg-red-50 border border-amber-250 hover:border-red-200 text-slate-500 hover:text-red-650 font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors"
-                      >
-                        Reject
-                      </button>
+
+                    {/* Col 4: Amount */}
+                    <div className="font-extrabold text-slate-900 text-right">
+                      {formatPrice(order.totalAmount)}
                     </div>
-                  </div>
-                )}
 
-                {/* Customer Contact & Quick Actions */}
-                <div className="space-y-1.5 text-xs bg-slate-50/60 border border-slate-200/80 p-3.5 rounded-2xl flex justify-between items-center">
-                  <div className="space-y-1 truncate">
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <User size={13} className="text-slate-400 shrink-0" />
-                      <span className="font-bold truncate">{order.customerName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <Phone size={13} className="text-slate-400 shrink-0" />
-                      <span className="font-mono">{order.customerMobile}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-1.5">
-                    {/* WhatsApp Quick Message Action */}
-                    <a
-                      href={getWhatsAppLink(order)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 hover:bg-emerald-50 text-slate-450 hover:text-emerald-600 rounded-xl border border-transparent hover:border-emerald-100 transition-colors"
-                      title="WhatsApp Customer Notification"
-                    >
-                      <MessageSquare size={14} />
-                    </a>
-
-                    {/* Print Thermal Receipt Action */}
-                    <button
-                      onClick={() => setReceiptModalOrder(order)}
-                      className="p-2 hover:bg-slate-100 text-slate-455 hover:text-slate-800 rounded-xl border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
-                      title="Print Thermal Receipt"
-                    >
-                      <Printer size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Items List (Toggable Checkboxes for Kitchen prepping) */}
-                <div className="flex-1 space-y-2 border-t border-b border-slate-100 py-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-slate-450 uppercase tracking-widest font-black block">
-                      Kitchen checklist
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-bold block">
-                      Click to cross item
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    {order.items.map((item) => {
-                      const isPrepared = preparedItems.has(`${order.id}-${item.id}`);
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => toggleItemPrepared(order.id, item.id)}
-                          className={`flex justify-between items-start text-xs cursor-pointer select-none transition-all p-1.5 rounded-lg ${
-                            isPrepared
-                              ? 'bg-slate-50 text-slate-400 line-through'
-                              : 'hover:bg-slate-50 text-slate-700'
+                    {/* Col 5: Payment Badge */}
+                    <div className="sm:text-right">
+                      {hasPendingVerification ? (
+                        <span className="bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded font-bold text-[9px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-amber-500"></span>
+                          Verify Payment
+                        </span>
+                      ) : (
+                        <span
+                          className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
+                            order.paymentStatus === 'PAID'
+                              ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 border-slate-200 text-slate-500'
                           }`}
                         >
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5">
-                              {isPrepared ? (
-                                <CheckSquare size={13} className="text-cyan-500" />
-                              ) : (
-                                <Square size={13} className="text-slate-400" />
-                              )}
-                            </span>
-                            <span className="font-medium text-left">
-                              {item.name} <strong className="text-slate-400 ml-1">× {item.quantity}</strong>
-                            </span>
-                          </div>
-                          <span className="text-slate-500 font-mono shrink-0">
-                            {formatPrice(item.price * item.quantity)}
+                          {order.paymentMethod}: {order.paymentStatus}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Col 6: Order Status Badge */}
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                          order.status === 'RECEIVED'
+                            ? 'bg-red-50 border-red-100 text-red-700'
+                            : order.status === 'PREPARING'
+                            ? 'bg-orange-50 border-orange-100 text-orange-700'
+                            : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {order.status === 'RECEIVED' && 'Pending'}
+                        {order.status === 'PREPARING' && 'Preparing'}
+                        {order.status === 'SERVED' && 'Served'}
+                      </span>
+                      {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                    </div>
+                  </div>
+
+                  {/* Expanded Accordion Details */}
+                  {isExpanded && (
+                    <div className="px-5 pb-6 border-t border-slate-100 bg-white grid grid-cols-1 lg:grid-cols-3 gap-6 pt-5">
+                      {/* Left: Interactive Checklist */}
+                      <div className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-4 space-y-3">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                            Kitchen Checklist
                           </span>
+                          <span className="text-[9px] text-slate-400 font-medium">Click to cross prepared items</span>
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-800 mt-3 pt-2">
-                    <span>Grand Total:</span>
-                    <span className="text-slate-900 text-sm font-extrabold">{formatPrice(order.totalAmount)}</span>
-                  </div>
+                        <div className="space-y-2">
+                          {order.items.map((item) => {
+                            const isPrepared = preparedItems.has(`${order.id}-${item.id}`);
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={(e) => toggleItemPrepared(order.id, item.id, e)}
+                                className={`flex justify-between items-center p-2 rounded-xl border select-none transition-all ${
+                                  isPrepared
+                                    ? 'bg-emerald-50/30 border-emerald-100/40 text-slate-400 line-through'
+                                    : 'bg-white border-slate-150 text-slate-700 hover:bg-slate-50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {isPrepared ? (
+                                    <CheckSquare size={13} className="text-cyan-500 shrink-0" />
+                                  ) : (
+                                    <Square size={13} className="text-slate-400 shrink-0" />
+                                  )}
+                                  <span className="font-semibold text-slate-800 text-xs">
+                                    {item.name} <strong className="text-slate-400 font-medium">× {item.quantity}</strong>
+                                  </span>
+                                </div>
+                                <span className="font-mono text-slate-500">{formatPrice(item.price * item.quantity)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Middle: Waiter & Communication controls */}
+                      <div className="space-y-4 flex flex-col justify-between">
+                        {/* Waiter assign select */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <Users size={12} className="text-slate-450" />
+                            <span>Assign Service Waiter</span>
+                          </label>
+                          <select
+                            value={order.assignedWaiter || ''}
+                            onChange={(e) => updateWaiter(order.id, e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 text-slate-800 rounded-xl px-3 py-2.5 outline-none transition-colors"
+                          >
+                            <option value="">Unassigned</option>
+                            {waiters.map((name) => (
+                              <option key={name} value={name}>
+                                👤 {name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Verify Payment Overlay (If pending verification) */}
+                        {hasPendingVerification && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 space-y-2">
+                            <span className="text-[9px] font-bold text-amber-800 uppercase tracking-wider block">
+                              Pending Manual Verification
+                            </span>
+                            <p className="text-[10px] text-amber-700 leading-relaxed font-light">
+                              Customer paid **{formatPrice(order.totalAmount)}** via **{order.paymentMethod}**. Verify your accounts, then click approve:
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => approvePayment(order.id)}
+                                disabled={updatingId === order.id}
+                                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
+                              >
+                                {updatingId === order.id ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <Play size={10} className="stroke-[2.5]" />
+                                )}
+                                <span>Approve & Cook</span>
+                              </button>
+                              <button
+                                onClick={() => rejectOrder(order.id)}
+                                disabled={updatingId === order.id}
+                                className="bg-white hover:bg-red-50 border border-amber-250 text-slate-500 hover:text-red-650 font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Customer Actions WhatsApp & Print */}
+                        <div className="flex gap-2 bg-slate-50/60 border border-slate-200/80 p-3 rounded-2xl justify-between items-center">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                            Actions
+                          </span>
+                          <div className="flex gap-2">
+                            <a
+                              href={getWhatsAppLink(order)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3.5 py-1.5 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 rounded-xl border border-slate-200 hover:border-emerald-100 transition-colors flex items-center gap-1 font-bold"
+                              title="Notify Guest"
+                            >
+                              <MessageSquare size={13} />
+                              <span>WhatsApp</span>
+                            </a>
+                            <button
+                              onClick={() => setReceiptModalOrder(order)}
+                              className="px-3.5 py-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1 font-bold"
+                              title="Print receipt"
+                            >
+                              <Printer size={13} />
+                              <span>Receipt</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Pipeline progress & Action button */}
+                      <div className="space-y-4 flex flex-col justify-between">
+                        {/* Stage Progress line */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[8px] text-slate-400 uppercase font-black tracking-wider">
+                            <span>Received</span>
+                            <span>Preparing</span>
+                            <span>Served</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 flex overflow-hidden">
+                            <div className={`h-full transition-all duration-500 ${
+                              order.status === 'RECEIVED' ? 'w-1/3 bg-red-400' :
+                              order.status === 'PREPARING' ? 'w-2/3 bg-orange-400 animate-pulse' :
+                              'w-full bg-emerald-500'
+                            }`} />
+                          </div>
+                        </div>
+
+                        {/* CTA button */}
+                        <div className="pt-2">
+                          {!hasPendingVerification && order.status === 'RECEIVED' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'PREPARING')}
+                              disabled={updatingId === order.id}
+                              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-500/10 cursor-pointer disabled:opacity-50"
+                            >
+                              <Play size={13} />
+                              <span>Start Preparing</span>
+                            </button>
+                          )}
+
+                          {!hasPendingVerification && order.status === 'PREPARING' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'SERVED')}
+                              disabled={updatingId === order.id}
+                              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-cyan-500/10 cursor-pointer disabled:opacity-50"
+                            >
+                              <Check size={13} />
+                              <span>Mark Served</span>
+                            </button>
+                          )}
+
+                          {order.status === 'SERVED' && (
+                            <button
+                              disabled
+                              className="w-full bg-slate-50 border border-slate-200 text-slate-400 font-bold py-3 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1"
+                            >
+                              <Check size={13} className="text-emerald-500" />
+                              <span>Completed & Served</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* Waiter Assignment & Actions */}
-                <div className="space-y-4">
-                  {/* Waiter Profile dropdown selector */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <Users size={12} className="text-slate-400" />
-                      <span>Assign Staff / Waiter</span>
-                    </label>
-                    <select
-                      value={order.assignedWaiter || ''}
-                      onChange={(e) => updateWaiter(order.id, e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-800 rounded-xl px-3 py-2.5 text-xs outline-none transition-colors"
-                    >
-                      <option value="">Unassigned</option>
-                      {waiters.map((name) => (
-                        <option key={name} value={name}>
-                          👤 {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Status action CTA */}
-                  {!hasPendingVerification && order.status === 'RECEIVED' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'PREPARING')}
-                      disabled={updatingId === order.id}
-                      className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-500/10 cursor-pointer disabled:opacity-50"
-                    >
-                      <Play size={13} />
-                      <span>Start Preparing</span>
-                    </button>
-                  )}
-
-                  {!hasPendingVerification && order.status === 'PREPARING' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'SERVED')}
-                      disabled={updatingId === order.id}
-                      className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-cyan-500/10 cursor-pointer disabled:opacity-50"
-                    >
-                      <Check size={13} />
-                      <span>Mark Served</span>
-                    </button>
-                  )}
-
-                  {order.status === 'SERVED' && (
-                    <button
-                      disabled
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-400 font-bold py-3 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1"
-                    >
-                      <Check size={13} className="text-emerald-500" />
-                      <span>Completed & Served</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -756,7 +731,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             {/* Header info */}
             <div className="text-center space-y-1 mb-4">
               <h3 className="font-extrabold text-sm uppercase tracking-wide text-slate-900">{restaurantName}</h3>
-              <p className="text-[10px] text-slate-400">TABLE ORDERING PORTAL</p>
+              <p className="text-[10px] text-slate-400 font-bold">TABLE ORDERING PORTAL</p>
               <p className="text-[9px] text-slate-400 font-light">
                 Date: {new Date(receiptModalOrder.createdAt).toLocaleDateString('en-IN', {
                   day: 'numeric',
@@ -769,7 +744,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             </div>
 
             {/* Bill info fields */}
-            <div className="border-t border-dashed border-slate-300 py-3 space-y-1 text-slate-700">
+            <div className="border-t border-dashed border-slate-300 py-3 space-y-1 text-slate-700 text-left">
               <p><strong>Order ID:</strong> #{receiptModalOrder.orderNumber}</p>
               <p><strong>Table Name:</strong> Table {receiptModalOrder.tableNumber}</p>
               <p><strong>Guest Name:</strong> {receiptModalOrder.customerName}</p>
@@ -778,7 +753,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             </div>
 
             {/* Items table */}
-            <div className="border-t border-b border-dashed border-slate-300 py-3 my-3 space-y-2">
+            <div className="border-t border-b border-dashed border-slate-300 py-3 my-3 space-y-2 text-left">
               <div className="flex justify-between font-bold text-slate-900">
                 <span>Item (Qty)</span>
                 <span className="text-right">Price</span>
