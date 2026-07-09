@@ -462,44 +462,44 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                   {/* Row Summary */}
                   <div
                     onClick={() => toggleRowExpand(order.id)}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 cursor-pointer text-xs select-none gap-4"
+                    className="grid grid-cols-1 sm:grid-cols-12 items-center p-5 cursor-pointer text-xs select-none gap-4 text-left font-sans"
                   >
                     {/* Col 1: Order Number / Time */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 sm:col-span-2">
                       <span className="font-black text-slate-900 text-sm">#{order.orderNumber}</span>
                       <span className="text-[10px] text-slate-400 font-bold">{getElapsedTime(order.createdAt)}</span>
                     </div>
 
                     {/* Col 2: Table */}
-                    <div className="sm:text-center">
-                      <span className="bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded font-black text-cyan-600 text-[10px]">
+                    <div className="sm:text-center sm:col-span-2">
+                      <span className="bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded font-black text-cyan-600 text-[10px] inline-block">
                         Table {order.tableNumber}
                       </span>
                     </div>
 
                     {/* Col 3: Customer Details */}
-                    <div className="text-slate-700 font-bold min-w-[130px]">
-                      <span>{order.customerName}</span>
-                      <span className="text-[9px] text-slate-450 block font-mono font-medium mt-0.5">
+                    <div className="text-slate-700 font-bold sm:col-span-3 min-w-0 truncate">
+                      <span className="block truncate">{order.customerName}</span>
+                      <span className="text-[9px] text-slate-455 block font-mono font-medium mt-0.5 truncate">
                         {order.customerMobile}
                       </span>
                     </div>
 
                     {/* Col 4: Amount */}
-                    <div className="font-extrabold text-slate-900 text-right">
+                    <div className="font-extrabold text-slate-900 sm:text-right sm:col-span-1">
                       {formatPrice(order.totalAmount)}
                     </div>
 
                     {/* Col 5: Payment Badge */}
-                    <div className="sm:text-right">
+                    <div className="sm:text-right sm:col-span-2">
                       {hasPendingVerification ? (
-                        <span className="bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded font-bold text-[9px] uppercase tracking-wider animate-pulse flex items-center gap-1">
-                          <span className="w-1 h-1 rounded-full bg-amber-500"></span>
+                        <span className="inline-flex bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded font-bold text-[9px] uppercase tracking-wider animate-pulse items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
                           Verify Payment
                         </span>
                       ) : (
                         <span
-                          className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
                             order.paymentStatus === 'PAID'
                               ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                               : 'bg-slate-100 border-slate-200 text-slate-500'
@@ -511,7 +511,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                     </div>
 
                     {/* Col 6: Order Status Badge */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-end gap-2.5 sm:col-span-2 w-full">
                       <span
                         className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
                           order.status === 'RECEIVED'
@@ -525,7 +525,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                         {order.status === 'PREPARING' && 'Preparing'}
                         {order.status === 'SERVED' && 'Served'}
                       </span>
-                      {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                      {isExpanded ? <ChevronUp size={16} className="text-slate-400 shrink-0" /> : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
                     </div>
                   </div>
 
