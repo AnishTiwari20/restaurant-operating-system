@@ -56,11 +56,14 @@ export default async function RestaurantOrdersPage() {
     })),
   }));
 
+  const restaurantName = restaurant?.name || 'Restaurant';
+
   return (
     <OrdersBoard
       initialOrders={formattedOrders}
       restaurantId={restaurantId}
       currency={currency}
+      restaurantName={restaurantName}
     />
   );
 }
