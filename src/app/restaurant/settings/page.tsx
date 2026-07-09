@@ -36,7 +36,9 @@ export default async function RestaurantSettingsPage() {
     businessHrs: restaurant.businessHrs || '',
     currency: restaurant.currency,
     taxPercentage: restaurant.settings?.taxPercentage ?? 5.0,
-    paymentMethods: restaurant.settings?.paymentMethods ?? 'UPI,CARDS,NETBANKING,WALLETS',
+    paymentMethods: restaurant.settings?.paymentMethods ?? 'UPI,COUNTER',
+    upiId: restaurant.settings?.upiId || '',
+    upiQrUrl: restaurant.settings?.upiQrUrl || '',
   };
 
   return (

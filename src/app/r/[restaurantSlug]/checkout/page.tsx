@@ -36,7 +36,7 @@ export default async function CheckoutPage({ params }: Props) {
   }
 
   const taxPercentage = restaurant.settings?.taxPercentage ?? 5.0;
-  const rawPaymentMethods = restaurant.settings?.paymentMethods ?? 'UPI,CARDS,NETBANKING,WALLETS';
+  const rawPaymentMethods = restaurant.settings?.paymentMethods ?? 'UPI,COUNTER';
   const paymentMethods = rawPaymentMethods.split(',').map((m) => m.trim());
 
   return (

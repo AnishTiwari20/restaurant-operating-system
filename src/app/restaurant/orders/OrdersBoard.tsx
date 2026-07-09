@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Check, Clock, User, Phone, Bell, Volume2, VolumeX, ShieldAlert, Search, X } from 'lucide-react';
+import { Play, Check, Clock, User, Phone, Bell, Volume2, VolumeX, ShieldAlert, Search, X, Loader2 } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -18,6 +18,7 @@ interface OrderData {
   tableNumber: string;
   status: string;
   paymentMethod: string;
+  paymentStatus: string;
   totalAmount: number;
   assignedWaiter: string;
   createdAt: string;
@@ -128,6 +129,75 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
     } catch (e) {
       console.error(e);
       alert('Error updating order.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const approvePayment = async (orderId: string) => {
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch('/api/restaurant/orders/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId,
+          paymentStatus: 'PAID',
+          status: 'PREPARING', // Automatically update status to preparing to start kitchen processing
+        }),
+      });
+
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId
+              ? { ...o, paymentStatus: 'PAID', status: 'PREPARING' }
+              : o
+          )
+        );
+      } else {
+        alert('Failed to approve payment.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error approving payment.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const rejectOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to reject this order and mark payment as failed?')) return;
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch('/api/restaurant/orders/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId,
+          paymentStatus: 'FAILED',
+          status: 'FAILED',
+        }),
+      });
+
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId
+              ? { ...o, paymentStatus: 'FAILED', status: 'FAILED' }
+              : o
+          )
+        );
+      } else {
+        alert('Failed to reject order.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error rejecting order.');
     } finally {
       setUpdatingId(null);
     }
@@ -356,13 +426,51 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
                 </span>
               </div>
 
+              {/* Verify Manual Payment Block */}
+              {order.paymentStatus === 'PENDING_VERIFICATION' && (
+                <div className="bg-amber-50 border border-amber-250 rounded-2xl p-4 text-xs text-amber-800 space-y-2.5">
+                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-800">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-duration-1000"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                    </span>
+                    <span>Verify payment</span>
+                  </div>
+                  <p className="text-[10px] text-amber-700 leading-relaxed font-light">
+                    Customer selected **{order.paymentMethod}** and clicked confirm. Please verify receipt of **{formatPrice(order.totalAmount)}** before clicking approve.
+                  </p>
+                  
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => approvePayment(order.id)}
+                      disabled={updatingId === order.id}
+                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
+                    >
+                      {updatingId === order.id ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        <Play size={10} className="stroke-[2.5]" />
+                      )}
+                      <span>Approve & Cook</span>
+                    </button>
+                    <button
+                      onClick={() => rejectOrder(order.id)}
+                      disabled={updatingId === order.id}
+                      className="bg-white hover:bg-red-50 border border-amber-250 hover:border-red-200 text-slate-500 hover:text-red-650 font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Customer Contact */}
-              <div className="space-y-1.5 text-xs bg-slate-50/60 border border-slate-200 p-3 rounded-2xl">
+              <div className="space-y-1.5 text-xs bg-slate-50/60 border border-slate-200/80 p-3 rounded-2xl">
                 <div className="flex items-center gap-2 text-slate-700">
                   <User size={13} className="text-slate-400 shrink-0" />
                   <span className="font-bold truncate">{order.customerName}</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-505">
+                <div className="flex items-center gap-2 text-slate-500">
                   <Phone size={13} className="text-slate-400 shrink-0" />
                   <span className="font-mono">{order.customerMobile}</span>
                 </div>
@@ -406,7 +514,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
                 </div>
 
                 {/* Status action CTA */}
-                {order.status === 'RECEIVED' && (
+                {order.paymentStatus !== 'PENDING_VERIFICATION' && order.status === 'RECEIVED' && (
                   <button
                     onClick={() => updateOrderStatus(order.id, 'PREPARING')}
                     disabled={updatingId === order.id}
@@ -417,7 +525,7 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency }: P
                   </button>
                 )}
 
-                {order.status === 'PREPARING' && (
+                {order.paymentStatus !== 'PENDING_VERIFICATION' && order.status === 'PREPARING' && (
                   <button
                     onClick={() => updateOrderStatus(order.id, 'SERVED')}
                     disabled={updatingId === order.id}

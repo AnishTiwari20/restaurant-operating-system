@@ -15,7 +15,9 @@ export async function GET(req: Request) {
     const orders = await db.order.findMany({
       where: {
         restaurantId,
-        paymentStatus: 'PAID',
+        paymentStatus: {
+          in: ['PAID', 'PENDING_VERIFICATION', 'PENDING'],
+        },
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -32,6 +34,7 @@ export async function GET(req: Request) {
       tableNumber: order.table.number,
       status: order.status,
       paymentMethod: order.paymentMethod || 'Unknown',
+      paymentStatus: order.paymentStatus,
       totalAmount: order.totalAmount,
       assignedWaiter: order.assignedWaiter || '',
       createdAt: order.createdAt.toISOString(),

@@ -16,6 +16,8 @@ export async function POST(req: Request) {
       currency,
       taxPercentage,
       paymentMethods,
+      upiId,
+      upiQrUrl,
     } = body;
 
     if (!restaurantId || !name || !address || !phone) {
@@ -41,6 +43,8 @@ export async function POST(req: Request) {
         data: {
           taxPercentage: parseFloat(taxPercentage) || 0,
           paymentMethods,
+          upiId: upiId || null,
+          upiQrUrl: upiQrUrl || null,
         },
       }),
     ]);

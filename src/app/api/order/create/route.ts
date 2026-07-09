@@ -12,34 +12,13 @@ export async function POST(req: Request) {
       customerMobile,
       cartItems,
       paymentMethod,
-      transactionId,
       amount,
       taxAmount,
-      gatewayResponse,
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
     } = body;
 
     // 1. Validations
     if (!restaurantSlug || !tableId || !customerName || !cartItems || cartItems.length === 0) {
       return NextResponse.json({ message: 'Missing required order fields.' }, { status: 400 });
-    }
-
-    // Cryptographic signature verification for Razorpay payments
-    if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
-      const crypto = require('crypto');
-      const expectedSignature = crypto
-        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-        .digest('hex');
-
-      if (expectedSignature !== razorpaySignature) {
-        return NextResponse.json(
-          { message: 'Payment verification failed. Invalid signature.' },
-          { status: 400 }
-        );
-      }
     }
 
     // 2. Fetch Restaurant
@@ -72,7 +51,7 @@ export async function POST(req: Request) {
 
     // 5. Create Order & Payment in a Database Transaction
     const result = await db.$transaction(async (tx) => {
-      // Create the order
+      // Create the order with status RECEIVED and paymentStatus PENDING_VERIFICATION
       const order = await tx.order.create({
         data: {
           orderNumber,
@@ -81,7 +60,7 @@ export async function POST(req: Request) {
           customerName,
           customerMobile: customerMobile || '',
           status: 'RECEIVED',
-          paymentStatus: 'PAID',
+          paymentStatus: 'PENDING_VERIFICATION', // Waiting for manual merchant verification
           paymentMethod,
           taxAmount,
           totalAmount: amount,
@@ -96,15 +75,21 @@ export async function POST(req: Request) {
         },
       });
 
-      // Create the payment record
+      // Generate a mock txn reference for manual tracking
+      const txnRef = `MANUAL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      // Create the payment record with PENDING status
       await tx.payment.create({
         data: {
           orderId: order.id,
-          transactionId,
+          transactionId: txnRef,
           amount,
           paymentMethod,
-          status: 'SUCCESS',
-          gatewayResponse,
+          status: 'PENDING',
+          gatewayResponse: JSON.stringify({
+            message: 'Manual transfer payment verification pending.',
+            timestamp: new Date().toISOString(),
+          }),
         },
       });
 
@@ -112,12 +97,15 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
-      message: 'Order created successfully.',
+      message: 'Order created successfully. Pending verification.',
       orderId: result.id,
       orderNumber: result.orderNumber,
     });
   } catch (error: any) {
-    console.error('Error creating order:', error);
-    return NextResponse.json({ message: 'Internal server error.', error: error.message }, { status: 500 });
+    console.error('Error placing order:', error);
+    return NextResponse.json(
+      { message: 'Internal server error.', error: error.message },
+      { status: 500 }
+    );
   }
 }

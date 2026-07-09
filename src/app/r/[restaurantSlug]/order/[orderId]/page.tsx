@@ -43,6 +43,7 @@ export default async function OrderTrackingPage({ params }: Props) {
       tableNumber={order.table.number}
       customerName={order.customerName}
       initialStatus={order.status}
+      initialPaymentStatus={order.paymentStatus}
       items={formattedItems}
       subtotal={order.totalAmount - order.taxAmount}
       taxAmount={order.taxAmount}

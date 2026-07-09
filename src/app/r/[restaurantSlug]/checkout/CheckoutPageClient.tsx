@@ -73,12 +73,8 @@ export default function CheckoutPageClient({
     switch (method.toUpperCase()) {
       case 'UPI':
         return <QrCode className="text-cyan-600" size={20} />;
-      case 'CARDS':
-        return <CreditCard className="text-blue-600" size={20} />;
-      case 'NETBANKING':
-        return <Landmark className="text-purple-600" size={20} />;
-      case 'WALLETS':
-        return <Wallet className="text-orange-650" size={20} />;
+      case 'COUNTER':
+        return <Landmark className="text-teal-650" size={20} />;
       default:
         return <CreditCard className="text-slate-400" size={20} />;
     }
@@ -87,13 +83,9 @@ export default function CheckoutPageClient({
   const getMethodLabel = (method: string) => {
     switch (method.toUpperCase()) {
       case 'UPI':
-        return 'UPI / QR Code';
-      case 'CARDS':
-        return 'Credit / Debit Cards';
-      case 'NETBANKING':
-        return 'Net Banking';
-      case 'WALLETS':
-        return 'Mobile Wallets';
+        return 'UPI / QR Code Transfer';
+      case 'COUNTER':
+        return 'Pay on Counter / Cash';
       default:
         return method;
     }

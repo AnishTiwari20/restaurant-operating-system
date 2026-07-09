@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronUp, Clock, Utensils, CheckCircle2, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Utensils, CheckCircle2, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface OrderItemData {
   id: string;
@@ -19,6 +19,7 @@ interface Props {
   tableNumber: string;
   customerName: string;
   initialStatus: string;
+  initialPaymentStatus: string;
   items: OrderItemData[];
   subtotal: number;
   taxAmount: number;
@@ -34,6 +35,7 @@ export default function OrderTrackingClient({
   tableNumber,
   customerName,
   initialStatus,
+  initialPaymentStatus,
   items,
   grandTotal,
   currency,
@@ -41,18 +43,19 @@ export default function OrderTrackingClient({
 }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<string>(initialStatus);
+  const [paymentStatus, setPaymentStatus] = useState<string>(initialPaymentStatus);
   const [showItems, setShowItems] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Poll for status updates
   useEffect(() => {
-    // If order is already served/completed, we don't need to poll
-    if (status === 'SERVED') return;
+    // If order is served, we don't need to poll anymore
+    if (status === 'SERVED' || status === 'FAILED') return;
 
     const interval = setInterval(async () => {
       await fetchStatus();
-    }, 5000); // Poll every 5 seconds
+    }, 4000); // Poll every 4 seconds
 
     return () => clearInterval(interval);
   }, [status]);
@@ -63,8 +66,18 @@ export default function OrderTrackingClient({
       const res = await fetch(`/api/order/status?orderId=${orderNumber}&slug=${restaurantSlug}`);
       if (res.ok) {
         const data = await res.json();
+        
+        let changed = false;
         if (data.status !== status) {
           setStatus(data.status);
+          changed = true;
+        }
+        if (data.paymentStatus !== paymentStatus) {
+          setPaymentStatus(data.paymentStatus);
+          changed = true;
+        }
+
+        if (changed) {
           setLastUpdated(new Date());
         }
       }
@@ -113,10 +126,28 @@ export default function OrderTrackingClient({
           </p>
         </div>
 
+        {/* Verification Alert Banner */}
+        {paymentStatus === 'PENDING_VERIFICATION' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 shadow-sm space-y-2 relative overflow-hidden">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <h3 className="font-extrabold text-xs text-amber-800 uppercase tracking-wider">
+                Verifying Payment
+              </h3>
+            </div>
+            <p className="text-[11px] text-amber-700 leading-relaxed font-light">
+              Our staff is verifying your payment with our accounts. Cooking will begin immediately once confirmed. This usually takes less than 2 minutes.
+            </p>
+          </div>
+        )}
+
         {/* Status Dashboard Card */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
           {/* Pulsing indicator */}
-          {status !== 'SERVED' && (
+          {status !== 'SERVED' && status !== 'FAILED' && (
             <div className="absolute top-4 right-4 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
               <span>Live tracking</span>
@@ -131,157 +162,156 @@ export default function OrderTrackingClient({
               {status === 'RECEIVED' && 'Order Received'}
               {status === 'PREPARING' && 'Preparing Food'}
               {status === 'SERVED' && 'Food Served!'}
+              {status === 'FAILED' && 'Order Rejected'}
             </h2>
             <p className="text-xs text-slate-500 mt-2 max-w-xs mx-auto leading-relaxed">
-              {status === 'RECEIVED' && 'The kitchen has received your order and will start preparing it shortly.'}
+              {status === 'RECEIVED' && paymentStatus === 'PENDING_VERIFICATION' && 'Waiting for payment verification from restaurant staff.'}
+              {status === 'RECEIVED' && paymentStatus !== 'PENDING_VERIFICATION' && 'The kitchen has received your order and will start preparing it shortly.'}
               {status === 'PREPARING' && 'Our chefs are currently preparing your delicious meal with fresh ingredients.'}
               {status === 'SERVED' && 'Your meal has been served! We hope you enjoy it. Please let the staff know if you need anything else.'}
+              {status === 'FAILED' && 'Your order was rejected or payment verification failed. Please contact the staff.'}
             </p>
           </div>
 
           <div className="border-t border-slate-100 my-6" />
 
           {/* Tracking Pipeline */}
-          <div className="space-y-6 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-            {/* Step 1: Placed */}
-            <div className="flex items-center gap-4 relative z-10">
-              <div
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                  activeStep >= 1
-                    ? 'bg-cyan-50 border-cyan-500 text-cyan-600 shadow'
-                    : 'bg-slate-100 border-slate-200 text-slate-400'
-                }`}
-              >
-                <Clock size={18} />
-              </div>
-              <div>
-                <h3
-                  className={`text-sm font-bold transition-all duration-300 ${
-                    activeStep >= 1 ? 'text-slate-900' : 'text-slate-400'
+          {status !== 'FAILED' ? (
+            <div className="space-y-6 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+              {/* Step 1: Placed */}
+              <div className="flex items-center gap-4 relative z-10">
+                <div
+                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                    activeStep >= 1
+                      ? 'bg-cyan-500 border-cyan-500 text-white shadow shadow-cyan-500/20'
+                      : 'bg-white border-slate-200 text-slate-400'
                   }`}
                 >
-                  Order Placed
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Order was received and paid
-                </p>
+                  1
+                </div>
+                <div>
+                  <h3 className={`text-xs font-black uppercase tracking-wider ${activeStep >= 1 ? 'text-slate-800' : 'text-slate-400'}`}>
+                    Order Received
+                  </h3>
+                  <p className="text-[10px] text-slate-450 mt-0.5 font-light">
+                    Your order details were sent to kitchen
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Step 2: Preparing */}
-            <div className="flex items-center gap-4 relative z-10">
-              <div
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                  activeStep >= 2
-                    ? 'bg-cyan-50 border-cyan-500 text-cyan-600 shadow'
-                    : 'bg-slate-100 border-slate-200 text-slate-400'
-                }`}
-              >
-                <Utensils size={18} />
-              </div>
-              <div>
-                <h3
-                  className={`text-sm font-bold transition-all duration-300 ${
-                    activeStep >= 2 ? 'text-slate-900' : 'text-slate-400'
+              {/* Step 2: Preparing */}
+              <div className="flex items-center gap-4 relative z-10">
+                <div
+                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                    activeStep >= 2
+                      ? 'bg-cyan-500 border-cyan-500 text-white shadow shadow-cyan-500/20'
+                      : 'bg-white border-slate-200 text-slate-400'
                   }`}
                 >
-                  Kitchen Preparing
-                </h3>
-                <p className="text-[11px] text-slate-450 mt-0.5">
-                  Meal is being freshly cooked
-                </p>
+                  2
+                </div>
+                <div>
+                  <h3 className={`text-xs font-black uppercase tracking-wider ${activeStep >= 2 ? 'text-slate-800' : 'text-slate-400'}`}>
+                    Preparing Food
+                  </h3>
+                  <p className="text-[10px] text-slate-450 mt-0.5 font-light">
+                    Our chefs are preparing your hot meal
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Step 3: Served */}
-            <div className="flex items-center gap-4 relative z-10">
-              <div
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                  activeStep >= 3
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-600 shadow'
-                    : 'bg-slate-100 border-slate-200 text-slate-400'
-                }`}
-              >
-                <CheckCircle2 size={18} />
-              </div>
-              <div>
-                <h3
-                  className={`text-sm font-bold transition-all duration-300 ${
-                    activeStep >= 3 ? 'text-slate-900' : 'text-slate-400'
+              {/* Step 3: Served */}
+              <div className="flex items-center gap-4 relative z-10">
+                <div
+                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                    activeStep >= 3
+                      ? 'bg-cyan-500 border-cyan-500 text-white shadow shadow-cyan-500/20'
+                      : 'bg-white border-slate-200 text-slate-400'
                   }`}
                 >
-                  Food Served
-                </h3>
-                <p className="text-[11px] text-slate-450 mt-0.5">
-                  Served hot at Table {tableNumber}
-                </p>
+                  3
+                </div>
+                <div>
+                  <h3 className={`text-xs font-black uppercase tracking-wider ${activeStep >= 3 ? 'text-slate-800' : 'text-slate-400'}`}>
+                    Food Served
+                  </h3>
+                  <p className="text-[10px] text-slate-450 mt-0.5 font-light">
+                    Food has arrived on your table
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-center py-4 bg-red-50 rounded-2xl border border-red-100 text-red-700">
+              <AlertTriangle size={24} />
+              <span className="text-xs font-black uppercase tracking-wider">Order Discarded</span>
+            </div>
+          )}
         </div>
 
-        {/* View Details Accordion */}
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        {/* Order Details Accordion */}
+        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
           <button
             onClick={() => setShowItems(!showItems)}
-            className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+            className="w-full flex justify-between items-center p-5 text-left hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            <span>Order Details ({items.length} items)</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-cyan-600">{formatPrice(grandTotal)}</span>
-              {showItems ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <Utensils size={16} className="text-cyan-500" />
+              <span className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                Order details ({items.length} items)
+              </span>
             </div>
+            {showItems ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
           </button>
 
           {showItems && (
-            <div className="px-5 pb-5 pt-2 border-t border-slate-100 space-y-3.5 text-xs text-slate-500">
-              {items.map((item) => (
-                <div key={item.id} className="flex justify-between items-center">
-                  <span>
-                    {item.name} <strong className="text-slate-400 ml-1">× {item.quantity}</strong>
-                  </span>
-                  <span className="text-slate-700 font-semibold">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-              <div className="h-px bg-slate-100 my-2" />
-              <div className="flex justify-between font-bold text-slate-800 text-sm">
-                <span>Grand Total</span>
-                <span className="text-slate-900">{formatPrice(grandTotal)}</span>
+            <div className="px-5 pb-5 divide-y divide-slate-100 text-xs">
+              <div className="py-2 space-y-2">
+                {items.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center">
+                    <span className="text-slate-650">
+                      {item.name} <span className="text-slate-400 font-bold ml-1">×{item.quantity}</span>
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div className="text-[10px] text-slate-400 pt-1">
-                Ordered at:{' '}
-                {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+              <div className="pt-3 flex justify-between items-center text-sm font-black text-slate-900">
+                <span>Total Amount paid</span>
+                <span className="text-cyan-600">{formatPrice(grandTotal)}</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Tracking page refresh/actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={fetchStatus}
-            disabled={isRefreshing}
-            className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-650 hover:text-slate-900 font-bold py-3.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-cyan-600' : ''} />
-            <span>Refresh Status</span>
-          </button>
-          <button
-            onClick={() => router.push(`/r/${restaurantSlug}/menu`)}
-            className="flex-1 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1 transition-all cursor-pointer"
-          >
-            <span>Order More</span>
-            <ChevronRight size={14} />
-          </button>
+        {/* Sync Status Info */}
+        <div className="flex items-center justify-between px-2 text-[10px] text-slate-400">
+          <div className="flex items-center gap-1">
+            <Clock size={12} />
+            <span>Updated at {lastUpdated.toLocaleTimeString()}</span>
+          </div>
+          {isRefreshing && (
+            <span className="flex items-center gap-1 font-semibold uppercase tracking-wider text-cyan-600">
+              <RefreshCw size={10} className="animate-spin" />
+              Syncing
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="text-center text-[10px] text-slate-400 uppercase tracking-widest py-4">
-        © {new Date().getFullYear()} {restaurantName}. Powered by RestaurantOS
-      </footer>
+      {/* Floating Back to Menu Button */}
+      <div className="max-w-md w-full mx-auto pt-4 border-t border-slate-200/60 mt-auto">
+        <button
+          onClick={() => router.push(`/r/${restaurantSlug}/menu`)}
+          className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm"
+        >
+          <span>Back to Menu</span>
+          <ChevronRight size={14} />
+        </button>
+      </div>
     </div>
   );
 }

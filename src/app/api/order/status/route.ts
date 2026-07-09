@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       },
       select: {
         status: true,
+        paymentStatus: true,
       },
     });
 
@@ -40,7 +41,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'Order not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ status: order.status });
+    return NextResponse.json({
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+    });
   } catch (error: any) {
     console.error('Error fetching order status:', error);
     return NextResponse.json({ message: 'Internal server error.', error: error.message }, { status: 500 });

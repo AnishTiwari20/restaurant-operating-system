@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, CheckCircle2, AlertCircle, Upload, X, Loader2 } from 'lucide-react';
 
 interface SettingsData {
   name: string;
@@ -13,6 +13,8 @@ interface SettingsData {
   currency: string;
   taxPercentage: number;
   paymentMethods: string;
+  upiId: string;
+  upiQrUrl: string;
 }
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
 export default function SettingsForm({ initialSettings, restaurantId }: Props) {
   const [formData, setFormData] = useState<SettingsData>(initialSettings);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
@@ -39,6 +42,38 @@ export default function SettingsForm({ initialSettings, restaurantId }: Props) {
       ...prev,
       paymentMethods: methodsList.join(','),
     }));
+  };
+
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+
+    try {
+      const res = await fetch('/api/restaurant/menu/dish/upload', {
+        method: 'POST',
+        body: uploadData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFormData((prev) => ({ ...prev, upiQrUrl: data.url }));
+      } else {
+        alert(data.message || 'QR code upload failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload error.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeQrCode = () => {
+    setFormData((prev) => ({ ...prev, upiQrUrl: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,6 +266,83 @@ export default function SettingsForm({ initialSettings, restaurantId }: Props) {
             </div>
           </div>
 
+          {/* Direct Manual UPI Config */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-5 h-fit">
+            <h2 className="font-extrabold text-sm text-slate-800 border-b border-slate-100 pb-3 flex items-center justify-between">
+              <span>Manual UPI QR Setup</span>
+              <span className="text-[9px] bg-cyan-50 text-cyan-600 border border-cyan-100 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                Direct
+              </span>
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="upiId" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Restaurant UPI ID (VPA)
+                </label>
+                <input
+                  id="upiId"
+                  type="text"
+                  disabled={loading}
+                  value={formData.upiId}
+                  onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                  placeholder="e.g. restaurant@okaxis"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 rounded-xl px-4 py-3 text-xs outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Payment QR Code Image
+                </span>
+                
+                {formData.upiQrUrl ? (
+                  <div className="relative border border-slate-250 bg-slate-50 rounded-2xl p-4 flex flex-col items-center gap-3">
+                    <img
+                      src={formData.upiQrUrl}
+                      alt="Merchant QR"
+                      className="w-32 h-32 object-contain border border-slate-200 bg-white rounded-lg p-1.5"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeQrCode}
+                      className="text-[9px] font-extrabold text-red-600 hover:text-red-700 uppercase tracking-wider flex items-center gap-0.5"
+                    >
+                      <X size={12} />
+                      <span>Remove QR Code</span>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-cyan-500 rounded-2xl p-6 cursor-pointer bg-slate-50 hover:bg-cyan-50/5 transition-all text-center">
+                    {uploading ? (
+                      <>
+                        <Loader2 className="animate-spin text-cyan-500 mb-2" size={24} />
+                        <span className="text-[10px] font-bold text-slate-500">Uploading to cloud...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="text-slate-400 mb-2" size={24} />
+                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">
+                          Upload Custom QR Code
+                        </span>
+                        <span className="text-[9px] text-slate-400 mt-1">
+                          PNG, JPG, or WEBP (Max 5MB)
+                        </span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={loading || uploading}
+                      onChange={handleQrUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Payment Methods */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-5 h-fit">
             <h2 className="font-extrabold text-sm text-slate-800 border-b border-slate-100 pb-3">
@@ -238,7 +350,7 @@ export default function SettingsForm({ initialSettings, restaurantId }: Props) {
             </h2>
 
             <div className="space-y-3">
-              {['UPI', 'CARDS', 'NETBANKING', 'WALLETS'].map((method) => {
+              {['UPI', 'COUNTER'].map((method) => {
                 const isChecked = acceptedMethods.includes(method);
                 return (
                   <label
@@ -246,10 +358,8 @@ export default function SettingsForm({ initialSettings, restaurantId }: Props) {
                     className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 hover:border-cyan-200 rounded-xl cursor-pointer select-none text-xs"
                   >
                     <span className="font-bold text-slate-700">
-                      {method === 'UPI' && 'UPI / QR Code'}
-                      {method === 'CARDS' && 'Credit & Debit Cards'}
-                      {method === 'NETBANKING' && 'Net Banking'}
-                      {method === 'WALLETS' && 'Mobile Wallets'}
+                      {method === 'UPI' && 'UPI / QR Code Transfer'}
+                      {method === 'COUNTER' && 'Pay on Counter / Cash'}
                     </span>
                     <input
                       type="checkbox"
@@ -281,8 +391,8 @@ export default function SettingsForm({ initialSettings, restaurantId }: Props) {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-4 px-4 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+            disabled={loading || uploading}
+            className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-4 px-4 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer disabled:opacity-40"
           >
             <Save size={16} />
             <span>Save Settings</span>
