@@ -67,9 +67,9 @@ export default function PaymentClient({
   const taxAmount = subtotal * (taxPercentage / 100);
   const grandTotal = subtotal + taxAmount;
 
-  // Generate dynamic backup QR code if merchant only set up UPI ID but no QR image
+  // Generate dynamic QR code if merchant set up UPI ID
   useEffect(() => {
-    if (grandTotal > 0 && upiId && !upiQrUrl) {
+    if (grandTotal > 0 && upiId) {
       const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(restaurantName)}&am=${grandTotal.toFixed(2)}&cu=INR&tn=Table_${tableNumber}_Order`;
       QRCode.toDataURL(upiLink, { width: 350, margin: 1 })
         .then((url) => {
@@ -79,7 +79,7 @@ export default function PaymentClient({
           console.error('Failed to generate dynamic UPI QR code:', err);
         });
     }
-  }, [grandTotal, upiId, upiQrUrl, restaurantName, tableNumber]);
+  }, [grandTotal, upiId, restaurantName, tableNumber]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -203,11 +203,11 @@ export default function PaymentClient({
               <h3 className="font-black text-sm text-slate-800">UPI Transfer</h3>
 
               {/* Show QR code if present */}
-              {upiQrUrl || dynamicQrUrl ? (
+              {dynamicQrUrl ? (
                 <div className="space-y-3 flex flex-col items-center">
                   <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-inner w-[200px] h-[200px] flex items-center justify-center mx-auto">
                     <img
-                      src={upiQrUrl || dynamicQrUrl}
+                      src={dynamicQrUrl}
                       alt="UPI QR Code"
                       className="w-[180px] h-[180px] object-contain"
                     />
@@ -218,7 +218,7 @@ export default function PaymentClient({
                 </div>
               ) : (
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5 text-xs text-amber-700 text-left leading-relaxed">
-                  ⚠️ The restaurant has not uploaded a payment QR code yet. Please check out and pay at the counter, or notify staff.
+                  ⚠️ The restaurant has not configured their UPI ID yet. Please check out and pay at the counter, or notify staff.
                 </div>
               )}
 
