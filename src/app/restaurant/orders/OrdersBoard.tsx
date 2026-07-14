@@ -511,9 +511,9 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">Live Orders Queue</h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Manage incoming tables and kitchen preparation. Tap on any order row to expand details.
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Live Orders Queue</h1>
+          <p className="text-slate-500 text-xs mt-1 font-medium">
+            Manage incoming tables and kitchen preparation. Tap on any order card to expand details.
           </p>
         </div>
 
@@ -521,13 +521,13 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4.5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer shadow-sm active:scale-95 ${
               soundEnabled
-                ? 'bg-cyan-50 border-cyan-100 text-cyan-600 hover:bg-cyan-100/50'
-                : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
+                ? 'bg-cyan-500 border-cyan-500 text-white shadow-cyan-500/10 hover:bg-cyan-600 hover:border-cyan-600'
+                : 'bg-white border-slate-200 text-slate-400 hover:text-slate-650 hover:border-slate-300'
             }`}
           >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
             <span>{soundEnabled ? 'Alerts On' : 'Alerts Muted'}</span>
           </button>
         </div>
@@ -535,28 +535,28 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
 
       {/* KITCHEN AGGREGATOR PANEL */}
       {aggregatedItems.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-5 shadow-sm space-y-3.5">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-slate-800 text-amber-400 rounded-lg">
-              <Clock size={15} />
+        <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 text-white rounded-3xl p-6 shadow-lg shadow-slate-900/10 space-y-4">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 bg-slate-800 text-amber-400 rounded-xl border border-slate-700/50">
+              <Clock size={16} />
             </span>
             <div>
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-200">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-200">
                 Kitchen Prep Aggregator
               </h2>
-              <p className="text-[9px] text-slate-400">
+              <p className="text-[9px] text-slate-400 font-medium">
                 Active portions to prepare across all tables
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             {aggregatedItems.map(([name, qty]) => (
               <span
                 key={name}
-                className="bg-slate-800 border border-slate-700/60 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2"
+                className="bg-slate-850 hover:bg-slate-800 border border-slate-700/40 hover:border-cyan-500/20 text-slate-200 px-3.5 py-2 rounded-2xl text-xs font-black flex items-center gap-2.5 transition-all shadow-sm"
               >
                 <span>{name}</span>
-                <span className="bg-cyan-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                <span className="bg-cyan-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-sm shadow-cyan-500/20">
                   ×{qty}
                 </span>
               </span>
@@ -566,9 +566,9 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
       )}
 
       {/* SEARCH AND FILTERS PANEL */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
         <div className="relative w-full">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
             <Search size={16} />
           </span>
           <input
@@ -576,12 +576,12 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
             placeholder="Search by customer name, mobile, table, order #, total amount..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-2xl pl-10 pr-10 py-3.5 text-xs outline-none transition-all"
+            className="w-full bg-slate-50 border border-slate-200/80 focus:border-cyan-500 focus:bg-white focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-2xl pl-11 pr-10 py-3.5 text-xs outline-none transition-all font-medium"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-700 transition-colors"
             >
               <X size={15} />
             </button>
@@ -589,43 +589,43 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 border-b border-slate-100 pb-3 overflow-x-auto">
+        <div className="flex gap-2 border-b border-slate-100 pb-3 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setFilter('active')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer border ${
               filter === 'active'
-                ? 'bg-cyan-500 border-cyan-500 text-white shadow shadow-cyan-500/10'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
+                ? 'bg-cyan-500 border-cyan-500 text-white shadow-md shadow-cyan-500/20'
+                : 'bg-slate-50 border-slate-200/85 text-slate-500 hover:text-slate-800'
             }`}
           >
             Active Queue ({orders.filter((o) => o.status === 'RECEIVED' || o.status === 'PREPARING').length})
           </button>
           <button
             onClick={() => setFilter('received')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer border ${
               filter === 'received'
-                ? 'bg-red-50 border-red-150 text-red-700 shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
+                ? 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/10'
+                : 'bg-slate-50 border-slate-200/85 text-slate-500 hover:text-slate-800'
             }`}
           >
             Pending ({orders.filter((o) => o.status === 'RECEIVED').length})
           </button>
           <button
             onClick={() => setFilter('preparing')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer border ${
               filter === 'preparing'
-                ? 'bg-orange-50 border-orange-150 text-orange-700 shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
+                ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
+                : 'bg-slate-50 border-slate-200/85 text-slate-500 hover:text-slate-800'
             }`}
           >
             Preparing ({orders.filter((o) => o.status === 'PREPARING').length})
           </button>
           <button
             onClick={() => setFilter('served')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer border ${
               filter === 'served'
-                ? 'bg-emerald-50 border-emerald-150 text-emerald-700 shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
+                ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/10'
+                : 'bg-slate-50 border-slate-200/85 text-slate-500 hover:text-slate-800'
             }`}
           >
             Served ({orders.filter((o) => o.status === 'SERVED').length})
@@ -633,168 +633,206 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         </div>
       </div>
 
-      {/* LIST VIEW LAYOUT TABLE */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
-        {searchedOrders.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 text-xs">
-            No live orders match selected filters.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {searchedOrders.map((order) => {
-              const isExpanded = expandedIds.has(order.id);
-              const hasPendingVerification = order.paymentStatus === 'PENDING_VERIFICATION';
+      {/* SEPARATE CARD LIST LAYOUT */}
+      {searchedOrders.length === 0 ? (
+        <div className="bg-white border border-slate-200/85 rounded-3xl p-16 text-center text-slate-400 text-xs font-bold shadow-sm">
+          No live orders match selected filters.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {searchedOrders.map((order) => {
+            const isExpanded = expandedIds.has(order.id);
+            const hasPendingVerification = order.paymentStatus === 'PENDING_VERIFICATION';
 
-              return (
+            return (
+              <div
+                key={order.id}
+                className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden ${
+                  isExpanded 
+                    ? 'border-cyan-500/40 shadow-lg shadow-slate-100 ring-1 ring-cyan-500/5' 
+                    : 'border-slate-200/80 hover:border-cyan-200 hover:shadow-md hover:shadow-slate-100/50'
+                }`}
+              >
+                {/* Row Summary */}
                 <div
-                  key={order.id}
-                  className={`transition-colors duration-200 ${
-                    isExpanded ? 'bg-slate-50/30' : 'hover:bg-slate-50/20'
+                  onClick={() => toggleRowExpand(order.id)}
+                  className={`grid grid-cols-1 sm:grid-cols-12 items-center p-5 cursor-pointer text-xs select-none gap-4 text-left font-sans transition-colors ${
+                    isExpanded ? 'bg-slate-50/40 border-b border-slate-100' : ''
                   }`}
                 >
-                  {/* Row Summary */}
-                  <div
-                    onClick={() => toggleRowExpand(order.id)}
-                    className="grid grid-cols-1 sm:grid-cols-12 items-center p-5 cursor-pointer text-xs select-none gap-4 text-left font-sans"
-                  >
-                    {/* Col 1: Order Number / Time */}
-                    <div className="flex items-center gap-3 sm:col-span-2">
-                      <span className="font-black text-slate-900 text-sm">#{order.orderNumber}</span>
-                      <span className="text-[10px] text-slate-400 font-bold">{getElapsedTime(order.createdAt)}</span>
+                  {/* Col 1: Order Number / Time */}
+                  <div className="flex items-center gap-3 sm:col-span-2">
+                    <span className="font-black text-slate-900 text-base">#{order.orderNumber}</span>
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-extrabold bg-slate-50 border border-slate-150/40 px-2 py-0.5 rounded-lg shrink-0">
+                      <Clock size={11} className="text-slate-400" />
+                      <span>{getElapsedTime(order.createdAt)}</span>
                     </div>
+                  </div>
 
-                    {/* Col 2: Table */}
-                    <div className="sm:text-center sm:col-span-2 flex flex-col sm:items-center gap-1">
-                      <span className="bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded font-black text-cyan-600 text-[10px] inline-block">
-                        Table {order.tableNumber}
+                  {/* Col 2: Table & Special Request Badge */}
+                  <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                    <span className="bg-gradient-to-r from-cyan-50 to-cyan-100/40 border border-cyan-150/60 text-cyan-600 px-3 py-1 rounded-xl font-extrabold text-[10px] shadow-sm tracking-tight shrink-0">
+                      Table {order.tableNumber}
+                    </span>
+                    {order.specialInstructions && (
+                      <span className="bg-amber-500 text-white px-2 py-1 rounded-lg font-black text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-sm shadow-amber-500/10 animate-pulse shrink-0">
+                        <span className="w-1 h-1 rounded-full bg-white animate-ping"></span>
+                        Reqs
                       </span>
-                      {order.specialInstructions && (
-                        <span className="bg-amber-50 border border-amber-250 text-amber-850 px-1.5 py-0.5 rounded font-bold text-[8px] uppercase tracking-wider block shrink-0" title={order.specialInstructions}>
-                          ⚠️ Requests
-                        </span>
-                      )}
-                      {order.status === 'PREPARING' && order.preparationTime > 0 && (
-                        <PrepCountdown preparingAt={order.preparingAt} preparationTime={order.preparationTime} />
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Col 3: Customer Details */}
-                    <div className="text-slate-700 font-bold sm:col-span-3 min-w-0 truncate">
-                      <span className="block truncate">{order.customerName}</span>
-                      <span className="text-[9px] text-slate-455 block font-mono font-medium mt-0.5 truncate">
+                  {/* Col 3: Customer Details */}
+                  <div className="sm:col-span-3 min-w-0 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/50 flex items-center justify-center text-slate-600 font-black text-[10px] shrink-0 uppercase">
+                      {order.customerName.charAt(0)}
+                    </div>
+                    <div className="truncate">
+                      <span className="block font-black text-slate-800 text-xs tracking-tight truncate">
+                        {order.customerName}
+                      </span>
+                      <span className="text-[10px] text-slate-450 block font-mono font-medium mt-0.5 truncate flex items-center gap-1">
+                        <Phone size={9} className="text-slate-400" />
                         {order.customerMobile}
                       </span>
                     </div>
+                  </div>
 
-                    {/* Col 4: Amount */}
-                    <div className="font-extrabold text-slate-900 sm:text-right sm:col-span-1">
-                      {formatPrice(order.totalAmount)}
-                    </div>
+                  {/* Col 4: Timer Countdown */}
+                  <div className="sm:col-span-2 flex items-center">
+                    {order.status === 'PREPARING' && order.preparationTime > 0 && (
+                      <div className="scale-90 origin-left">
+                        <PrepCountdown preparingAt={order.preparingAt} preparationTime={order.preparationTime} />
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Col 5: Payment Badge */}
-                    <div className="sm:text-right sm:col-span-2">
+                  {/* Col 5: Amount */}
+                  <div className="font-black text-slate-900 text-sm sm:text-right sm:col-span-1">
+                    {formatPrice(order.totalAmount)}
+                  </div>
+
+                  {/* Col 6: Badges & Chevron Toggle */}
+                  <div className="sm:col-span-2 flex items-center justify-end gap-3.5 w-full">
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      {/* Payment Status */}
                       {hasPendingVerification ? (
-                        <span className="inline-flex bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded font-bold text-[9px] uppercase tracking-wider animate-pulse items-center gap-1">
+                        <span className="inline-flex bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-lg font-extrabold text-[9px] uppercase tracking-wider animate-pulse items-center gap-1 shadow-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                          Verify Payment
+                          Verify Pay
                         </span>
                       ) : (
                         <span
-                          className={`inline-flex px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex px-2 py-0.5 rounded-lg border text-[9px] font-extrabold uppercase tracking-wider shadow-sm ${
                             order.paymentStatus === 'PAID'
                               ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 border-slate-200 text-slate-500'
+                              : 'bg-slate-50 border-slate-200/80 text-slate-505'
                           }`}
                         >
                           {order.paymentMethod}: {order.paymentStatus}
                         </span>
                       )}
-                    </div>
 
-                    {/* Col 6: Order Status Badge */}
-                    <div className="flex items-center justify-end gap-2.5 sm:col-span-2 w-full">
+                      {/* Order status */}
                       <span
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider shadow-sm ${
                           order.status === 'RECEIVED'
-                            ? 'bg-red-50 border-red-100 text-red-700'
+                            ? 'bg-red-50 border-red-100 text-red-650'
                             : order.status === 'PREPARING'
-                            ? 'bg-orange-50 border-orange-100 text-orange-700'
-                            : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                            ? 'bg-orange-50 border-orange-100 text-orange-650'
+                            : 'bg-emerald-50 border-emerald-100 text-emerald-650'
                         }`}
                       >
                         {order.status === 'RECEIVED' && 'Pending'}
                         {order.status === 'PREPARING' && 'Preparing'}
                         {order.status === 'SERVED' && 'Served'}
                       </span>
-                      {isExpanded ? <ChevronUp size={16} className="text-slate-400 shrink-0" /> : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
+                    </div>
+
+                    <div className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                      {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                     </div>
                   </div>
+                </div>
 
-                  {/* Expanded Accordion Details */}
-                  {isExpanded && (
-                    <div className="px-5 pb-6 border-t border-slate-100 bg-white grid grid-cols-1 lg:grid-cols-3 gap-6 pt-5">
-                      {/* Left: Interactive Checklist */}
-                      <div className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-4 space-y-3">
-                        {order.specialInstructions && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-left space-y-1">
-                            <span className="text-[9px] font-bold text-amber-850 uppercase tracking-wider block">
-                              📝 Special Instructions
-                            </span>
-                            <p className="text-[11px] text-slate-800 font-semibold leading-relaxed">
-                              "{order.specialInstructions}"
-                            </p>
-                          </div>
-                        )}
+                {/* Expanded Accordion Details */}
+                {isExpanded && (
+                  <div className="px-6 pb-6 border-t border-slate-100 bg-slate-50/20 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6">
+                    {/* Left Column: Checklist & Instructions */}
+                    <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm space-y-4">
+                      {order.specialInstructions && (
+                        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border-l-4 border-amber-500 rounded-xl p-4 text-left space-y-1">
+                          <span className="text-[9px] font-black text-amber-850 uppercase tracking-widest flex items-center gap-1.5">
+                            <AlertCircle size={12} className="text-amber-500 shrink-0" />
+                            📝 Special Instructions
+                          </span>
+                          <p className="text-xs text-slate-800 font-semibold leading-relaxed">
+                            "{order.specialInstructions}"
+                          </p>
+                        </div>
+                      )}
 
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="p-1.5 bg-slate-100 rounded-lg text-slate-500">
+                            <CheckSquare size={13} />
+                          </span>
+                          <span className="text-[10px] text-slate-650 font-black uppercase tracking-wider">
                             Kitchen Checklist
                           </span>
-                          <span className="text-[9px] text-slate-400 font-medium">Click to cross prepared items</span>
                         </div>
-
-                        <div className="space-y-2">
-                          {order.items.map((item) => {
-                            const isPrepared = preparedItems.has(`${order.id}-${item.id}`);
-                            return (
-                              <div
-                                key={item.id}
-                                onClick={(e) => toggleItemPrepared(order.id, item.id, e)}
-                                className={`flex justify-between items-center p-2 rounded-xl border select-none transition-all ${
-                                  isPrepared
-                                    ? 'bg-emerald-50/30 border-emerald-100/40 text-slate-400 line-through'
-                                    : 'bg-white border-slate-150 text-slate-700 hover:bg-slate-50'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  {isPrepared ? (
-                                    <CheckSquare size={13} className="text-cyan-500 shrink-0" />
-                                  ) : (
-                                    <Square size={13} className="text-slate-400 shrink-0" />
-                                  )}
-                                  <span className="font-semibold text-slate-800 text-xs">
-                                    {item.name} <strong className="text-slate-400 font-medium">× {item.quantity}</strong>
-                                  </span>
-                                </div>
-                                <span className="font-mono text-slate-500">{formatPrice(item.price * item.quantity)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                          {order.items.length} items
+                        </span>
                       </div>
 
-                      {/* Middle: Waiter & Communication controls */}
-                      <div className="space-y-4 flex flex-col justify-between">
-                        {/* Waiter assign select */}
-                        <div className="space-y-1.5">
-                          <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <Users size={12} className="text-slate-450" />
-                            <span>Assign Service Waiter</span>
-                          </label>
+                      <div className="space-y-2.5">
+                        {order.items.map((item) => {
+                          const isPrepared = preparedItems.has(`${order.id}-${item.id}`);
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={(e) => toggleItemPrepared(order.id, item.id, e)}
+                              className={`flex justify-between items-center p-3.5 rounded-xl border select-none transition-all cursor-pointer ${
+                                isPrepared
+                                  ? 'bg-emerald-50/10 border-emerald-100/50 text-slate-400 line-through shadow-inner'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/50 hover:border-cyan-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                    isPrepared
+                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      : 'border-slate-350 bg-white'
+                                  }`}
+                                >
+                                  {isPrepared && <Check size={11} className="stroke-[3.5]" />}
+                                </div>
+                                <span className="font-extrabold text-slate-800 text-xs">
+                                  {item.name} <strong className="text-slate-400 font-medium ml-1">× {item.quantity}</strong>
+                                </span>
+                              </div>
+                              <span className="font-mono font-bold text-xs text-slate-500">{formatPrice(item.price * item.quantity)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Middle Column: Waiter & Communication controls */}
+                    <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm space-y-5 flex flex-col justify-between">
+                      {/* Waiter assign select */}
+                      <div className="space-y-2">
+                        <label className="block text-[9px] font-black text-slate-450 uppercase tracking-widest flex items-center gap-1.5">
+                          <Users size={13} className="text-slate-400" />
+                          <span>Assign Service Waiter</span>
+                        </label>
+                        <div className="relative">
                           <select
                             value={order.assignedWaiter || ''}
                             onChange={(e) => updateWaiter(order.id, e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 text-slate-800 rounded-xl px-3 py-2.5 outline-none transition-colors"
+                            className="w-full appearance-none bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-cyan-500 focus:bg-white text-slate-850 text-xs font-bold rounded-xl pl-3 pr-8 py-3.5 outline-none transition-all cursor-pointer"
                           >
                             <option value="">Unassigned</option>
                             {waiters.map((name) => (
@@ -803,90 +841,95 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                               </option>
                             ))}
                           </select>
-                        </div>
-
-                        {/* Kitchen Private Note */}
-                        <KitchenNoteInput
-                          orderId={order.id}
-                          initialNotes={order.merchantNotes}
-                          onSave={updateMerchantNotes}
-                        />
-
-                        {/* Verify Payment Overlay (If pending verification) */}
-                        {hasPendingVerification && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 space-y-2">
-                            <span className="text-[9px] font-bold text-amber-800 uppercase tracking-wider block">
-                              Pending Manual Verification
-                            </span>
-                            <p className="text-[10px] text-amber-700 leading-relaxed font-light">
-                              Customer paid **{formatPrice(order.totalAmount)}** via **{order.paymentMethod}**. Verify your accounts, then click approve:
-                            </p>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => approvePayment(order.id)}
-                                disabled={updatingId === order.id}
-                                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
-                              >
-                                {updatingId === order.id ? (
-                                  <Loader2 size={10} className="animate-spin" />
-                                ) : (
-                                  <Play size={10} className="stroke-[2.5]" />
-                                )}
-                                <span>Approve & Cook</span>
-                              </button>
-                              <button
-                                onClick={() => rejectOrder(order.id)}
-                                disabled={updatingId === order.id}
-                                className="bg-white hover:bg-red-50 border border-amber-250 text-slate-500 hover:text-red-650 font-extrabold py-2 px-3 rounded-lg text-[9px] uppercase tracking-wide cursor-pointer transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Customer Actions WhatsApp & Print */}
-                        <div className="flex gap-2 bg-slate-50/60 border border-slate-200/80 p-3 rounded-2xl justify-between items-center">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                            Actions
+                          <span className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-450">
+                            <ChevronDown size={14} />
                           </span>
-                          <div className="flex gap-2">
-                            <a
-                              href={getWhatsAppLink(order)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3.5 py-1.5 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 rounded-xl border border-slate-200 hover:border-emerald-100 transition-colors flex items-center gap-1 font-bold"
-                              title="Notify Guest"
-                            >
-                              <MessageSquare size={13} />
-                              <span>WhatsApp</span>
-                            </a>
-                            <button
-                              onClick={() => setReceiptModalOrder(order)}
-                              className="px-3.5 py-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1 font-bold"
-                              title="Print receipt"
-                            >
-                              <Printer size={13} />
-                              <span>Receipt</span>
-                            </button>
-                          </div>
                         </div>
                       </div>
 
-                      {/* Right: Pipeline progress, timers, & Action button */}
-                      <div className="space-y-4 flex flex-col justify-between lg:col-span-1">
-                        {/* Prep time dropdown & timer if preparing */}
-                        <div className="space-y-3 bg-slate-50 border border-slate-200/60 p-4.5 rounded-2xl text-left">
-                          {(order.status === 'RECEIVED' || order.status === 'PREPARING') && (
-                            <div className="space-y-1.5">
-                              <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                                <Clock size={12} className="text-slate-450" />
-                                <span>Est. Cooking Time</span>
-                              </label>
+                      {/* Kitchen Private Note */}
+                      <KitchenNoteInput
+                        orderId={order.id}
+                        initialNotes={order.merchantNotes}
+                        onSave={updateMerchantNotes}
+                      />
+
+                      {/* Verify Payment Overlay (If pending verification) */}
+                      {hasPendingVerification && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                          <span className="text-[9px] font-black text-amber-850 uppercase tracking-widest block">
+                            Pending Manual Verification
+                          </span>
+                          <p className="text-xs text-amber-700 leading-relaxed font-light">
+                            Customer paid **{formatPrice(order.totalAmount)}** via **{order.paymentMethod}**. Verify your accounts, then click approve:
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => approvePayment(order.id)}
+                              disabled={updatingId === order.id}
+                              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-2.5 px-3 rounded-xl text-[9px] uppercase tracking-wider cursor-pointer transition-all shadow-sm shadow-amber-500/10 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            >
+                              {updatingId === order.id ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <Play size={11} className="stroke-[2.5]" />
+                              )}
+                              <span>Approve & Cook</span>
+                            </button>
+                            <button
+                              onClick={() => rejectOrder(order.id)}
+                              disabled={updatingId === order.id}
+                              className="bg-white hover:bg-red-50 border border-amber-250 text-slate-500 hover:text-red-650 font-black py-2.5 px-4 rounded-xl text-[9px] uppercase tracking-wider cursor-pointer transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Customer Actions WhatsApp & Print */}
+                      <div className="flex gap-3 bg-slate-50 border border-slate-200 p-4 rounded-xl justify-between items-center">
+                        <span className="text-[9px] text-slate-455 font-black uppercase tracking-widest">
+                          Actions
+                        </span>
+                        <div className="flex gap-2">
+                          <a
+                            href={getWhatsAppLink(order)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 hover:bg-emerald-50 text-slate-650 hover:text-emerald-700 rounded-xl border border-slate-200 hover:border-emerald-100 transition-colors flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider bg-white shadow-sm"
+                            title="Notify Guest"
+                          >
+                            <MessageSquare size={13} className="text-emerald-500" />
+                            <span>WhatsApp</span>
+                          </a>
+                          <button
+                            onClick={() => setReceiptModalOrder(order)}
+                            className="px-4 py-2 hover:bg-slate-50 text-slate-650 hover:text-slate-800 rounded-xl border border-slate-200 transition-colors cursor-pointer flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wider bg-white shadow-sm"
+                            title="Print receipt"
+                          >
+                            <Printer size={13} className="text-slate-500" />
+                            <span>Receipt</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Pipeline progress, timers, & Action button */}
+                    <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm space-y-5 flex flex-col justify-between lg:col-span-1">
+                      {/* Prep time dropdown & timer if preparing */}
+                      <div className="space-y-3 bg-slate-50/50 border border-slate-200/60 p-4 rounded-xl text-left">
+                        {(order.status === 'RECEIVED' || order.status === 'PREPARING') && (
+                          <div className="space-y-2">
+                            <label className="block text-[9px] font-black text-slate-455 uppercase tracking-widest flex items-center gap-1.5">
+                              <Clock size={13} className="text-slate-400" />
+                              <span>Est. Cooking Time</span>
+                            </label>
+                            <div className="relative">
                               <select
                                 value={order.preparationTime || ''}
                                 onChange={(e) => updatePreparationTime(order.id, parseInt(e.target.value, 10))}
-                                className="w-full bg-white border border-slate-200 focus:border-cyan-500 text-slate-800 text-xs rounded-xl px-2.5 py-2 outline-none transition-colors"
+                                className="w-full appearance-none bg-white border border-slate-200 hover:border-slate-300 focus:border-cyan-500 text-slate-805 text-xs font-bold rounded-xl pl-3 pr-8 py-2.5 outline-none transition-colors cursor-pointer"
                               >
                                 <option value="">Not Assigned</option>
                                 <option value="5">5 mins</option>
@@ -896,156 +939,167 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                                 <option value="30">30 mins</option>
                                 <option value="45">45 mins</option>
                               </select>
-                            </div>
-                          )}
-
-                          {order.status === 'PREPARING' && order.preparationTime > 0 && order.preparingAt && (
-                            <div className="border-t border-slate-200/50 pt-2.5">
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                                Cooking Countdown
+                              <span className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                <ChevronDown size={14} />
                               </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {order.status === 'PREPARING' && order.preparationTime > 0 && order.preparingAt && (
+                          <div className="border-t border-slate-200/60 pt-3 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-slate-455 uppercase tracking-widest block">
+                              Cooking Countdown
+                            </span>
+                            <div className="scale-110 origin-right">
                               <PrepCountdown preparingAt={order.preparingAt} preparationTime={order.preparationTime} />
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Operations Timeline Details */}
-                        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4.5 space-y-3 text-left">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-100 pb-2">
-                            Operations Timeline
-                          </span>
-                          <div className="space-y-3.5 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
-                            {/* Received step */}
-                            <div className="flex gap-3 items-start relative z-10">
-                              <div className="w-6 h-6 rounded-full bg-slate-150 border border-slate-250 flex items-center justify-center shrink-0">
-                                <span className="text-[10px] font-bold text-slate-550">1</span>
-                              </div>
-                              <div>
-                                <p className="text-[11px] font-bold text-slate-800">Order Received</p>
-                                <p className="text-[9px] text-slate-400 font-medium">
-                                  Received at {formatTime(order.createdAt)}
-                                </p>
-                              </div>
+                      {/* Operations Timeline Details */}
+                      <div className="bg-slate-50/50 border border-slate-200/60 rounded-xl p-4 space-y-4 text-left">
+                        <span className="text-[9px] text-slate-455 font-black uppercase tracking-widest block border-b border-slate-200 pb-2">
+                          Operations Timeline
+                        </span>
+                        <div className="space-y-4 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                          {/* Received step */}
+                          <div className="flex gap-3 items-start relative z-10">
+                            <div className="w-6 h-6 rounded-full bg-cyan-500 border-2 border-cyan-100 flex items-center justify-center shrink-0 shadow shadow-cyan-500/20">
+                              <Check size={11} className="text-white stroke-[3]" />
                             </div>
+                            <div>
+                              <p className="text-[11px] font-black text-slate-800">Order Received</p>
+                              <p className="text-[9px] text-slate-450 font-bold mt-0.5">
+                                {formatTime(order.createdAt)}
+                              </p>
+                            </div>
+                          </div>
 
-                            {/* Preparing step */}
-                            <div className="flex gap-3 items-start relative z-10">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
-                                order.preparingAt 
-                                  ? 'bg-orange-50 border-orange-200 text-orange-650' 
-                                  : 'bg-slate-100 border-slate-200 text-slate-450'
-                              }`}>
-                                <span className="text-[10px] font-bold">2</span>
-                              </div>
-                              <div>
-                                <p className="text-[11px] font-bold text-slate-800">Prep Started</p>
-                                <p className="text-[9px] text-slate-400 font-medium">
-                                  {order.preparingAt ? (
-                                    <>
-                                      Started at {formatTime(order.preparingAt)}
-                                      <span className="text-cyan-600 font-bold ml-1 block mt-0.5">
-                                        ({Math.max(0, Math.round((new Date(order.preparingAt).getTime() - new Date(order.createdAt).getTime()) / 60000))}m wait time)
+                          {/* Preparing step */}
+                          <div className="flex gap-3 items-start relative z-10">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
+                              order.preparingAt 
+                                ? 'bg-orange-500 border-orange-100 text-white shadow shadow-orange-500/20' 
+                                : 'bg-white border-slate-300 text-slate-400'
+                            }`}>
+                              {order.preparingAt ? (
+                                <Check size={11} className="stroke-[3]" />
+                              ) : (
+                                <span className="text-[9px] font-black">2</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className={`text-[11px] font-black ${order.preparingAt ? 'text-slate-800' : 'text-slate-400'}`}>
+                                Prep Started
+                              </p>
+                              <p className="text-[9px] text-slate-455 font-bold mt-0.5">
+                                {order.preparingAt ? (
+                                  <>
+                                    {formatTime(order.preparingAt)}
+                                    <span className="text-cyan-655 font-extrabold ml-1 inline-block">
+                                      ({Math.max(0, Math.round((new Date(order.preparingAt).getTime() - new Date(order.createdAt).getTime()) / 60000))}m wait)
+                                    </span>
+                                  </>
+                                ) : (
+                                  'Waiting in queue'
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Served step */}
+                          <div className="flex gap-3 items-start relative z-10">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
+                              order.servedAt 
+                                ? 'bg-emerald-500 border-emerald-100 text-white shadow shadow-emerald-500/20' 
+                                : 'bg-white border-slate-300 text-slate-400'
+                            }`}>
+                              {order.servedAt ? (
+                                <Check size={11} className="stroke-[3]" />
+                              ) : (
+                                <span className="text-[9px] font-black">3</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className={`text-[11px] font-black ${order.servedAt ? 'text-slate-800' : 'text-slate-400'}`}>
+                                Served
+                              </p>
+                              <p className="text-[9px] text-slate-455 font-bold mt-0.5">
+                                {order.servedAt ? (
+                                  <>
+                                    {formatTime(order.servedAt)}
+                                    {order.preparingAt && (
+                                      <span className="text-cyan-655 font-extrabold ml-1 inline-block">
+                                        ({Math.max(1, Math.round((new Date(order.servedAt).getTime() - new Date(order.preparingAt).getTime()) / 60000))}m cook)
                                       </span>
-                                    </>
-                                  ) : (
-                                    'Waiting in queue'
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Served step */}
-                            <div className="flex gap-3 items-start relative z-10">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
-                                order.servedAt 
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-650' 
-                                  : 'bg-slate-100 border-slate-200 text-slate-450'
-                              }`}>
-                                <span className="text-[10px] font-bold">3</span>
-                              </div>
-                              <div>
-                                <p className="text-[11px] font-bold text-slate-800">Served</p>
-                                <p className="text-[9px] text-slate-400 font-medium">
-                                  {order.servedAt ? (
-                                    <>
-                                      Served at {formatTime(order.servedAt)}
-                                      {order.preparingAt && (
-                                        <span className="text-cyan-600 font-bold ml-1 block mt-0.5">
-                                          ({Math.max(1, Math.round((new Date(order.servedAt).getTime() - new Date(order.preparingAt).getTime()) / 60000))}m cooking time)
-                                        </span>
-                                      )}
-                                      <span className="text-emerald-600 font-bold ml-1 block mt-0.5">
-                                        Total cycle: {Math.max(1, Math.round((new Date(order.servedAt).getTime() - new Date(order.createdAt).getTime()) / 60000))}m
-                                      </span>
-                                    </>
-                                  ) : (
-                                    'Not served yet'
-                                  )}
-                                </p>
-                              </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  'Not served yet'
+                                )}
+                              </p>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Stage Progress line */}
-                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <div className="flex justify-between text-[8px] text-slate-400 uppercase font-black tracking-wider">
-                            <span>Received</span>
-                            <span>Preparing</span>
-                            <span>Served</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 flex overflow-hidden">
-                            <div className={`h-full transition-all duration-500 ${
-                              order.status === 'RECEIVED' ? 'w-1/3 bg-red-400' :
-                              order.status === 'PREPARING' ? 'w-2/3 bg-orange-400 animate-pulse' :
-                              'w-full bg-emerald-500'
-                            }`} />
-                          </div>
-                        </div>
-
-                        {/* CTA button */}
-                        <div className="pt-2">
-                          {!hasPendingVerification && order.status === 'RECEIVED' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'PREPARING')}
-                              disabled={updatingId === order.id}
-                              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-500/10 cursor-pointer disabled:opacity-50"
-                            >
-                              <Play size={13} />
-                              <span>Start Preparing</span>
-                            </button>
-                          )}
-
-                          {!hasPendingVerification && order.status === 'PREPARING' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'SERVED')}
-                              disabled={updatingId === order.id}
-                              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-cyan-500/10 cursor-pointer disabled:opacity-50"
-                            >
-                              <Check size={13} />
-                              <span>Mark Served</span>
-                            </button>
-                          )}
-
-                          {order.status === 'SERVED' && (
-                            <button
-                              disabled
-                              className="w-full bg-slate-50 border border-slate-200 text-slate-400 font-bold py-3 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1"
-                            >
-                              <Check size={13} className="text-emerald-500" />
-                              <span>Completed & Served</span>
-                            </button>
-                          )}
                         </div>
                       </div>
+
+                      {/* Stage Progress line */}
+                      <div className="space-y-2 pt-3 border-t border-slate-100">
+                        <div className="flex justify-between text-[8px] text-slate-450 uppercase font-black tracking-wider">
+                          <span className={order.status === 'RECEIVED' ? 'text-red-500 font-extrabold' : ''}>Received</span>
+                          <span className={order.status === 'PREPARING' ? 'text-orange-500 font-extrabold' : ''}>Preparing</span>
+                          <span className={order.status === 'SERVED' ? 'text-emerald-500 font-extrabold' : ''}>Served</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 flex overflow-hidden border border-slate-200/50">
+                          <div className={`h-full transition-all duration-500 rounded-full ${
+                            order.status === 'RECEIVED' ? 'w-1/3 bg-gradient-to-r from-red-500 to-red-400' :
+                            order.status === 'PREPARING' ? 'w-2/3 bg-gradient-to-r from-red-500 via-orange-500 to-orange-400 animate-pulse' :
+                            'w-full bg-gradient-to-r from-red-500 via-orange-500 to-emerald-500'
+                          }`} />
+                        </div>
+                      </div>
+
+                      {/* CTA button */}
+                      <div className="pt-2">
+                        {!hasPendingVerification && order.status === 'RECEIVED' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'PREPARING')}
+                            disabled={updatingId === order.id}
+                            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                          >
+                            <Play size={13} className="fill-current" />
+                            <span>Start Preparing</span>
+                          </button>
+                        )}
+
+                        {!hasPendingVerification && order.status === 'PREPARING' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'SERVED')}
+                            disabled={updatingId === order.id}
+                            className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md shadow-cyan-500/20 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                          >
+                            <Check size={13} className="stroke-[3]" />
+                            <span>Mark Served</span>
+                          </button>
+                        )}
+
+                        {order.status === 'SERVED' && (
+                          <div className="w-full bg-slate-50 border border-slate-200 text-slate-400 font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-inner">
+                            <Check size={14} className="text-emerald-500 stroke-[3]" />
+                            <span>Completed & Served</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* THERMAL BILLING RECEIPT PREVIEW MODAL */}
       {receiptModalOrder && (
