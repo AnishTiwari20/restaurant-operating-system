@@ -24,6 +24,7 @@ interface Props {
   customerMobile: string;
   tableId: string;
   tableNumber: string;
+  specialInstructions: string;
 }
 
 export default function PaymentClient({
@@ -38,6 +39,7 @@ export default function PaymentClient({
   customerMobile,
   tableId,
   tableNumber,
+  specialInstructions,
 }: Props) {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -112,6 +114,7 @@ export default function PaymentClient({
           paymentMethod: paymentMethod === 'COUNTER' ? 'Pay on Counter' : 'UPI Transfer',
           amount: grandTotal,
           taxAmount,
+          specialInstructions,
         }),
       });
 

@@ -37,6 +37,11 @@ export async function GET(req: Request) {
       paymentStatus: order.paymentStatus,
       totalAmount: order.totalAmount,
       assignedWaiter: order.assignedWaiter || '',
+      specialInstructions: order.specialInstructions || '',
+      preparationTime: order.preparationTime || 0,
+      merchantNotes: order.merchantNotes || '',
+      preparingAt: order.preparingAt ? order.preparingAt.toISOString() : null,
+      servedAt: order.servedAt ? order.servedAt.toISOString() : null,
       createdAt: order.createdAt.toISOString(),
       items: order.items.map((item) => ({
         id: item.id,

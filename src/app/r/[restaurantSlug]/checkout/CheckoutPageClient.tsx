@@ -31,6 +31,7 @@ export default function CheckoutPageClient({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [specialInstructions, setSpecialInstructions] = useState('');
 
   // Load cart from localStorage
   useEffect(() => {
@@ -95,7 +96,11 @@ export default function CheckoutPageClient({
     if (!selectedMethod) return;
     setLoading(true);
     // Navigate to payment page with checkout total and details
-    router.push(`/r/${restaurantSlug}/payment?method=${encodeURIComponent(selectedMethod)}`);
+    router.push(
+      `/r/${restaurantSlug}/payment?method=${encodeURIComponent(
+        selectedMethod
+      )}&instructions=${encodeURIComponent(specialInstructions)}`
+    );
   };
 
   if (cart.length === 0) {
@@ -153,6 +158,23 @@ export default function CheckoutPageClient({
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Special Instructions */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+          <h2 className="text-xs font-bold text-slate-550 uppercase tracking-wider">
+            Special Instructions (Optional)
+          </h2>
+          <textarea
+            placeholder="E.g., No onion/garlic, make it extra spicy, pack separately, allergen warnings..."
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value.slice(0, 300))}
+            rows={3}
+            className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-900 placeholder-slate-400 rounded-2xl p-4 text-xs outline-none transition-all resize-none font-sans"
+          />
+          <div className="flex justify-end text-[10px] text-slate-450">
+            <span>{specialInstructions.length}/300 characters</span>
           </div>
         </div>
 

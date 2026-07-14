@@ -40,6 +40,11 @@ interface OrderData {
   paymentStatus: string;
   totalAmount: number;
   assignedWaiter: string;
+  specialInstructions: string;
+  preparationTime: number;
+  merchantNotes: string;
+  preparingAt: string | null;
+  servedAt: string | null;
   createdAt: string;
   items: OrderItem[];
 }
@@ -49,6 +54,95 @@ interface Props {
   restaurantId: string;
   currency: string;
   restaurantName: string;
+}
+
+// Live Countdown widget with green/orange states
+function PrepCountdown({ preparingAt, preparationTime }: { preparingAt: string | null; preparationTime: number }) {
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!preparingAt || !preparationTime) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const calc = () => {
+      const start = new Date(preparingAt).getTime();
+      const duration = preparationTime * 60 * 1000;
+      const diff = start + duration - Date.now();
+      return diff > 0 ? Math.ceil(diff / 1000) : 0;
+    };
+
+    setTimeLeft(calc());
+    const interval = setInterval(() => {
+      const left = calc();
+      setTimeLeft(left);
+      if (left <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [preparingAt, preparationTime]);
+
+  if (timeLeft === null) return null;
+
+  if (timeLeft === 0) {
+    return (
+      <span className="inline-flex bg-amber-50 border border-amber-250 text-amber-800 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-wider animate-pulse shrink-0">
+        ⏰ Plating Now
+      </span>
+    );
+  }
+
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+
+  return (
+    <span className="inline-flex bg-cyan-50 border border-cyan-150 text-cyan-700 px-2 py-0.5 rounded font-mono font-black text-[9px] uppercase tracking-wider shrink-0">
+      ⏰ {mins}m {secs < 10 ? '0' : ''}{secs}s
+    </span>
+  );
+}
+
+// Kitchen internal notes with auto-save
+function KitchenNoteInput({ orderId, initialNotes, onSave }: { orderId: string; initialNotes: string; onSave: (orderId: string, notes: string) => Promise<void> }) {
+  const [notes, setNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setNotes(initialNotes);
+  }, [initialNotes]);
+
+  const handleBlur = async () => {
+    if (notes === initialNotes) return;
+    setSaving(true);
+    await onSave(orderId, notes);
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-1.5 text-left">
+      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+        Private Kitchen Notes
+      </label>
+      <div className="relative">
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={handleBlur}
+          placeholder="E.g., Allergen warnings, priority table..."
+          rows={2}
+          className="w-full bg-slate-50 border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-800 rounded-xl px-3 py-2 text-xs outline-none transition-all resize-none font-sans"
+        />
+        {saving && (
+          <span className="absolute bottom-2 right-2 text-[8px] text-slate-400 flex items-center gap-0.5 bg-white/80 px-1 py-0.5 rounded">
+            <Loader2 size={8} className="animate-spin" /> Saving...
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function OrdersBoard({ initialOrders, restaurantId, currency, restaurantName }: Props) {
@@ -159,7 +253,16 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
 
       if (res.ok) {
         setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
+          prev.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  status: nextStatus,
+                  preparingAt: nextStatus === 'PREPARING' ? new Date().toISOString() : o.preparingAt,
+                  servedAt: nextStatus === 'SERVED' ? new Date().toISOString() : o.servedAt,
+                }
+              : o
+          )
         );
       } else {
         alert('Failed to update status. Please try again.');
@@ -170,6 +273,64 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const updatePreparationTime = async (orderId: string, mins: number) => {
+    try {
+      const res = await fetch('/api/restaurant/orders/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, preparationTime: mins }),
+      });
+
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, preparationTime: mins } : o))
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateMerchantNotes = async (orderId: string, notes: string) => {
+    try {
+      await fetch('/api/restaurant/orders/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, merchantNotes: notes }),
+      });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, merchantNotes: notes } : o))
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const getActiveAggregatedItems = () => {
+    const activeOrders = orders.filter((o) => o.status === 'RECEIVED' || o.status === 'PREPARING');
+    const counts: { [name: string]: number } = {};
+    activeOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        counts[item.name] = (counts[item.name] || 0) + item.quantity;
+      });
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  };
+
+  const aggregatedItems = getActiveAggregatedItems();
+
+  const formatTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   const approvePayment = async (orderId: string) => {
@@ -372,6 +533,38 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
         </div>
       </div>
 
+      {/* KITCHEN AGGREGATOR PANEL */}
+      {aggregatedItems.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-5 shadow-sm space-y-3.5">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-slate-800 text-amber-400 rounded-lg">
+              <Clock size={15} />
+            </span>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                Kitchen Prep Aggregator
+              </h2>
+              <p className="text-[9px] text-slate-400">
+                Active portions to prepare across all tables
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {aggregatedItems.map(([name, qty]) => (
+              <span
+                key={name}
+                className="bg-slate-800 border border-slate-700/60 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2"
+              >
+                <span>{name}</span>
+                <span className="bg-cyan-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                  ×{qty}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* SEARCH AND FILTERS PANEL */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="relative w-full">
@@ -471,10 +664,18 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                     </div>
 
                     {/* Col 2: Table */}
-                    <div className="sm:text-center sm:col-span-2">
+                    <div className="sm:text-center sm:col-span-2 flex flex-col sm:items-center gap-1">
                       <span className="bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded font-black text-cyan-600 text-[10px] inline-block">
                         Table {order.tableNumber}
                       </span>
+                      {order.specialInstructions && (
+                        <span className="bg-amber-50 border border-amber-250 text-amber-850 px-1.5 py-0.5 rounded font-bold text-[8px] uppercase tracking-wider block shrink-0" title={order.specialInstructions}>
+                          ⚠️ Requests
+                        </span>
+                      )}
+                      {order.status === 'PREPARING' && order.preparationTime > 0 && (
+                        <PrepCountdown preparingAt={order.preparingAt} preparationTime={order.preparationTime} />
+                      )}
                     </div>
 
                     {/* Col 3: Customer Details */}
@@ -534,6 +735,17 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                     <div className="px-5 pb-6 border-t border-slate-100 bg-white grid grid-cols-1 lg:grid-cols-3 gap-6 pt-5">
                       {/* Left: Interactive Checklist */}
                       <div className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-4 space-y-3">
+                        {order.specialInstructions && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-left space-y-1">
+                            <span className="text-[9px] font-bold text-amber-850 uppercase tracking-wider block">
+                              📝 Special Instructions
+                            </span>
+                            <p className="text-[11px] text-slate-800 font-semibold leading-relaxed">
+                              "{order.specialInstructions}"
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                             Kitchen Checklist
@@ -592,6 +804,13 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                             ))}
                           </select>
                         </div>
+
+                        {/* Kitchen Private Note */}
+                        <KitchenNoteInput
+                          orderId={order.id}
+                          initialNotes={order.merchantNotes}
+                          onSave={updateMerchantNotes}
+                        />
 
                         {/* Verify Payment Overlay (If pending verification) */}
                         {hasPendingVerification && (
@@ -654,10 +873,122 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                         </div>
                       </div>
 
-                      {/* Right: Pipeline progress & Action button */}
-                      <div className="space-y-4 flex flex-col justify-between">
+                      {/* Right: Pipeline progress, timers, & Action button */}
+                      <div className="space-y-4 flex flex-col justify-between lg:col-span-1">
+                        {/* Prep time dropdown & timer if preparing */}
+                        <div className="space-y-3 bg-slate-50 border border-slate-200/60 p-4.5 rounded-2xl text-left">
+                          {(order.status === 'RECEIVED' || order.status === 'PREPARING') && (
+                            <div className="space-y-1.5">
+                              <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                <Clock size={12} className="text-slate-450" />
+                                <span>Est. Cooking Time</span>
+                              </label>
+                              <select
+                                value={order.preparationTime || ''}
+                                onChange={(e) => updatePreparationTime(order.id, parseInt(e.target.value, 10))}
+                                className="w-full bg-white border border-slate-200 focus:border-cyan-500 text-slate-800 text-xs rounded-xl px-2.5 py-2 outline-none transition-colors"
+                              >
+                                <option value="">Not Assigned</option>
+                                <option value="5">5 mins</option>
+                                <option value="10">10 mins</option>
+                                <option value="15">15 mins</option>
+                                <option value="20">20 mins</option>
+                                <option value="30">30 mins</option>
+                                <option value="45">45 mins</option>
+                              </select>
+                            </div>
+                          )}
+
+                          {order.status === 'PREPARING' && order.preparationTime > 0 && order.preparingAt && (
+                            <div className="border-t border-slate-200/50 pt-2.5">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Cooking Countdown
+                              </span>
+                              <PrepCountdown preparingAt={order.preparingAt} preparationTime={order.preparationTime} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Operations Timeline Details */}
+                        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4.5 space-y-3 text-left">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block border-b border-slate-100 pb-2">
+                            Operations Timeline
+                          </span>
+                          <div className="space-y-3.5 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
+                            {/* Received step */}
+                            <div className="flex gap-3 items-start relative z-10">
+                              <div className="w-6 h-6 rounded-full bg-slate-150 border border-slate-250 flex items-center justify-center shrink-0">
+                                <span className="text-[10px] font-bold text-slate-550">1</span>
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-bold text-slate-800">Order Received</p>
+                                <p className="text-[9px] text-slate-400 font-medium">
+                                  Received at {formatTime(order.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Preparing step */}
+                            <div className="flex gap-3 items-start relative z-10">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+                                order.preparingAt 
+                                  ? 'bg-orange-50 border-orange-200 text-orange-650' 
+                                  : 'bg-slate-100 border-slate-200 text-slate-450'
+                              }`}>
+                                <span className="text-[10px] font-bold">2</span>
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-bold text-slate-800">Prep Started</p>
+                                <p className="text-[9px] text-slate-400 font-medium">
+                                  {order.preparingAt ? (
+                                    <>
+                                      Started at {formatTime(order.preparingAt)}
+                                      <span className="text-cyan-600 font-bold ml-1 block mt-0.5">
+                                        ({Math.max(0, Math.round((new Date(order.preparingAt).getTime() - new Date(order.createdAt).getTime()) / 60000))}m wait time)
+                                      </span>
+                                    </>
+                                  ) : (
+                                    'Waiting in queue'
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Served step */}
+                            <div className="flex gap-3 items-start relative z-10">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+                                order.servedAt 
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-650' 
+                                  : 'bg-slate-100 border-slate-200 text-slate-450'
+                              }`}>
+                                <span className="text-[10px] font-bold">3</span>
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-bold text-slate-800">Served</p>
+                                <p className="text-[9px] text-slate-400 font-medium">
+                                  {order.servedAt ? (
+                                    <>
+                                      Served at {formatTime(order.servedAt)}
+                                      {order.preparingAt && (
+                                        <span className="text-cyan-600 font-bold ml-1 block mt-0.5">
+                                          ({Math.max(1, Math.round((new Date(order.servedAt).getTime() - new Date(order.preparingAt).getTime()) / 60000))}m cooking time)
+                                        </span>
+                                      )}
+                                      <span className="text-emerald-600 font-bold ml-1 block mt-0.5">
+                                        Total cycle: {Math.max(1, Math.round((new Date(order.servedAt).getTime() - new Date(order.createdAt).getTime()) / 60000))}m
+                                      </span>
+                                    </>
+                                  ) : (
+                                    'Not served yet'
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Stage Progress line */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
                           <div className="flex justify-between text-[8px] text-slate-400 uppercase font-black tracking-wider">
                             <span>Received</span>
                             <span>Preparing</span>
@@ -749,6 +1080,9 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
               <p><strong>Table Name:</strong> Table {receiptModalOrder.tableNumber}</p>
               <p><strong>Guest Name:</strong> {receiptModalOrder.customerName}</p>
               <p><strong>Mobile No:</strong> {receiptModalOrder.customerMobile}</p>
+              {receiptModalOrder.assignedWaiter && (
+                <p><strong>Waiter Name:</strong> {receiptModalOrder.assignedWaiter}</p>
+              )}
               <p><strong>Pay Method:</strong> {receiptModalOrder.paymentMethod}</p>
             </div>
 
@@ -781,6 +1115,14 @@ export default function OrdersBoard({ initialOrders, restaurantId, currency, res
                 <span>{formatPrice(receiptModalOrder.totalAmount)}</span>
               </div>
             </div>
+
+            {/* Special Instructions inside receipt if present */}
+            {receiptModalOrder.specialInstructions && (
+              <div className="border-t border-dashed border-slate-300 py-3 my-3 text-left text-[10px] text-amber-800">
+                <p className="font-extrabold uppercase">Guest Requests:</p>
+                <p className="italic text-slate-650 font-sans mt-0.5">"{receiptModalOrder.specialInstructions}"</p>
+              </div>
+            )}
 
             {/* Receipt Footer */}
             <div className="text-center mt-6 pt-4 border-t border-dashed border-slate-300 text-[10px] text-slate-400 font-light">

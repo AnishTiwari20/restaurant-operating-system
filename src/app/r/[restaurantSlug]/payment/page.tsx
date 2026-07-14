@@ -9,12 +9,13 @@ interface Props {
   }>;
   searchParams: Promise<{
     method?: string;
+    instructions?: string;
   }>;
 }
 
 export default async function PaymentPage({ params, searchParams }: Props) {
   const { restaurantSlug } = await params;
-  const { method } = await searchParams;
+  const { method, instructions } = await searchParams;
 
   // 1. Validate customer session cookies
   const cookieStore = await cookies();
@@ -52,6 +53,7 @@ export default async function PaymentPage({ params, searchParams }: Props) {
       customerMobile={customerMobile || ''}
       tableId={customerTableId}
       tableNumber={customerTableNumber || 'Unknown'}
+      specialInstructions={instructions || ''}
     />
   );
 }

@@ -50,6 +50,10 @@ export default async function OrderTrackingPage({ params }: Props) {
       grandTotal={order.totalAmount}
       currency={order.restaurant.currency}
       createdAt={order.createdAt.toISOString()}
+      specialInstructions={order.specialInstructions || ''}
+      initialPreparationTime={order.preparationTime || 0}
+      initialPreparingAt={order.preparingAt ? order.preparingAt.toISOString() : null}
+      initialServedAt={order.servedAt ? order.servedAt.toISOString() : null}
     />
   );
 }

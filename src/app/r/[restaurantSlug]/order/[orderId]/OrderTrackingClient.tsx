@@ -26,6 +26,10 @@ interface Props {
   grandTotal: number;
   currency: string;
   createdAt: string;
+  specialInstructions: string;
+  initialPreparationTime: number;
+  initialPreparingAt: string | null;
+  initialServedAt: string | null;
 }
 
 export default function OrderTrackingClient({
@@ -40,6 +44,10 @@ export default function OrderTrackingClient({
   grandTotal,
   currency,
   createdAt,
+  specialInstructions,
+  initialPreparationTime,
+  initialPreparingAt,
+  initialServedAt,
 }: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<string>(initialStatus);
@@ -47,6 +55,54 @@ export default function OrderTrackingClient({
   const [showItems, setShowItems] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Poll-synced states
+  const [preparationTime, setPreparationTime] = useState<number>(initialPreparationTime);
+  const [preparingAt, setPreparingAt] = useState<string | null>(initialPreparingAt);
+  const [servedAt, setServedAt] = useState<string | null>(initialServedAt);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  // Time remaining calculation
+  useEffect(() => {
+    if (status !== 'PREPARING' || !preparationTime || !preparingAt) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const calcTimeLeft = () => {
+      const prepTimeMs = preparationTime * 60 * 1000;
+      const startMs = new Date(preparingAt).getTime();
+      const endMs = startMs + prepTimeMs;
+      const diff = endMs - Date.now();
+      return diff > 0 ? Math.ceil(diff / 1000) : 0;
+    };
+
+    setTimeLeft(calcTimeLeft());
+
+    const timer = setInterval(() => {
+      const left = calcTimeLeft();
+      setTimeLeft(left);
+      if (left <= 0) {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [status, preparationTime, preparingAt]);
+
+  const formatTimeLeft = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs < 10 ? '0' : ''}${secs}s remaining`;
+  };
+
+  const formatTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   // Poll for status updates
   useEffect(() => {
@@ -74,6 +130,18 @@ export default function OrderTrackingClient({
         }
         if (data.paymentStatus !== paymentStatus) {
           setPaymentStatus(data.paymentStatus);
+          changed = true;
+        }
+        if (data.preparationTime !== preparationTime) {
+          setPreparationTime(data.preparationTime || 0);
+          changed = true;
+        }
+        if (data.preparingAt !== preparingAt) {
+          setPreparingAt(data.preparingAt);
+          changed = true;
+        }
+        if (data.servedAt !== servedAt) {
+          setServedAt(data.servedAt);
           changed = true;
         }
 
@@ -171,6 +239,31 @@ export default function OrderTrackingClient({
               {status === 'SERVED' && 'Your meal has been served! We hope you enjoy it. Please let the staff know if you need anything else.'}
               {status === 'FAILED' && 'Your order was rejected or payment verification failed. Please contact the staff.'}
             </p>
+
+            {/* Preparation time timer countdown */}
+            {status === 'PREPARING' && timeLeft !== null && (
+              <div className="mt-4 p-4 bg-cyan-50 border border-cyan-100 rounded-2xl max-w-xs mx-auto space-y-2">
+                <span className="text-[10px] text-cyan-650 uppercase font-black tracking-wider block">
+                  Estimated Cooking Time
+                </span>
+                <span className="text-xl font-black text-cyan-700 block font-mono">
+                  {timeLeft > 0 ? formatTimeLeft(timeLeft) : 'Plating Now...'}
+                </span>
+                <div className="w-full bg-cyan-100/50 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-cyan-500 transition-all duration-1000 animate-pulse"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        preparationTime > 0
+                          ? ((preparationTime * 60 - timeLeft) / (preparationTime * 60)) * 100
+                          : 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-slate-100 my-6" />
@@ -194,7 +287,7 @@ export default function OrderTrackingClient({
                     Order Received
                   </h3>
                   <p className="text-[10px] text-slate-450 mt-0.5 font-light">
-                    Your order details were sent to kitchen
+                    Your order details were sent to kitchen • <span className="font-semibold text-slate-500">{formatTime(createdAt)}</span>
                   </p>
                 </div>
               </div>
@@ -215,7 +308,18 @@ export default function OrderTrackingClient({
                     Preparing Food
                   </h3>
                   <p className="text-[10px] text-slate-450 mt-0.5 font-light">
-                    Our chefs are preparing your hot meal
+                    {preparingAt ? (
+                      <>
+                        Started cooking at <span className="font-semibold text-slate-500">{formatTime(preparingAt)}</span>
+                        {servedAt && preparingAt && (
+                          <span className="text-cyan-600 font-bold ml-1">
+                            (Cooked in {Math.max(1, Math.round((new Date(servedAt).getTime() - new Date(preparingAt).getTime()) / 60000))}m)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      'Our chefs are preparing your hot meal'
+                    )}
                   </p>
                 </div>
               </div>
@@ -236,7 +340,16 @@ export default function OrderTrackingClient({
                     Food Served
                   </h3>
                   <p className="text-[10px] text-slate-450 mt-0.5 font-light">
-                    Food has arrived on your table
+                    {servedAt ? (
+                      <>
+                        Arrived on your table at <span className="font-semibold text-slate-500">{formatTime(servedAt)}</span>
+                        <span className="text-emerald-600 font-bold ml-1">
+                          (Total wait: {Math.max(1, Math.round((new Date(servedAt).getTime() - new Date(createdAt).getTime()) / 60000))}m)
+                        </span>
+                      </>
+                    ) : (
+                      'Food has arrived on your table'
+                    )}
                   </p>
                 </div>
               </div>
@@ -248,6 +361,18 @@ export default function OrderTrackingClient({
             </div>
           )}
         </div>
+
+        {/* Special Instructions card if present */}
+        {specialInstructions && (
+          <div className="bg-amber-50/50 border border-amber-250/50 rounded-3xl p-5 shadow-sm space-y-2 relative overflow-hidden">
+            <h3 className="font-bold text-xs text-amber-800 uppercase tracking-wider">
+              Special Instructions
+            </h3>
+            <p className="text-xs text-slate-700 leading-relaxed font-semibold">
+              "{specialInstructions}"
+            </p>
+          </div>
+        )}
 
         {/* Order Details Accordion */}
         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">

@@ -34,6 +34,10 @@ export async function GET(req: Request) {
       select: {
         status: true,
         paymentStatus: true,
+        preparationTime: true,
+        preparingAt: true,
+        servedAt: true,
+        createdAt: true,
       },
     });
 
@@ -44,6 +48,10 @@ export async function GET(req: Request) {
     return NextResponse.json({
       status: order.status,
       paymentStatus: order.paymentStatus,
+      preparationTime: order.preparationTime,
+      preparingAt: order.preparingAt ? order.preparingAt.toISOString() : null,
+      servedAt: order.servedAt ? order.servedAt.toISOString() : null,
+      createdAt: order.createdAt.toISOString(),
     });
   } catch (error: any) {
     console.error('Error fetching order status:', error);

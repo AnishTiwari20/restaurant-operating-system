@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { orderId, status, paymentStatus } = await req.json();
+    const { orderId, status, paymentStatus, preparationTime, merchantNotes } = await req.json();
 
     if (!orderId) {
       return NextResponse.json({ message: 'Missing orderId parameter.' }, { status: 400 });
@@ -17,6 +17,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ message: 'Invalid status value.' }, { status: 400 });
       }
       dataToUpdate.status = status;
+
+      // Automatically assign timestamps for operations timeline
+      if (status === 'PREPARING') {
+        dataToUpdate.preparingAt = new Date();
+      } else if (status === 'SERVED') {
+        dataToUpdate.servedAt = new Date();
+      }
     }
 
     if (paymentStatus) {
@@ -25,6 +32,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ message: 'Invalid payment status value.' }, { status: 400 });
       }
       dataToUpdate.paymentStatus = paymentStatus;
+    }
+
+    if (preparationTime !== undefined) {
+      dataToUpdate.preparationTime = parseInt(preparationTime, 10);
+    }
+
+    if (merchantNotes !== undefined) {
+      dataToUpdate.merchantNotes = merchantNotes;
     }
 
     // Run updates in a transaction to keep Payment table in sync

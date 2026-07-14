@@ -14,6 +14,7 @@ export async function POST(req: Request) {
       paymentMethod,
       amount,
       taxAmount,
+      specialInstructions,
     } = body;
 
     // 1. Validations
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
           paymentMethod,
           taxAmount,
           totalAmount: amount,
+          specialInstructions: specialInstructions || '',
           items: {
             create: cartItems.map((item: any) => ({
               menuItemId: item.id,

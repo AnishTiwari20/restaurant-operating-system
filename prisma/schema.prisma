@@ -114,6 +114,11 @@ model Order {
   taxAmount      Float
   totalAmount    Float       // Grand total including tax
   assignedWaiter String?
+  specialInstructions String?
+  preparationTime     Int?        // in minutes
+  merchantNotes       String?
+  preparingAt         DateTime?
+  servedAt            DateTime?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   items          OrderItem[]
